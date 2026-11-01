@@ -1,0 +1,14 @@
+# Punto de entrada único: todo lo que no sea un archivo real pasa por index.php.
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Archivos y carpetas existentes (assets, etc.) se sirven tal cual.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    RewriteRule ^ index.php [L]
+</IfModule>
