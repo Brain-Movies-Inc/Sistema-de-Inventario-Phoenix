@@ -34,13 +34,21 @@ function db(): PDO
         // Venezuela (UTC-4) para que NOW() y las fechas coincidan con PHP.
         $pdo->exec("SET time_zone = '-04:00'");
     } catch (PDOException $e) {
+        // El detalle técnico queda solo en el registro del servidor.
+        error_log(sprintf(
+            '[De Todito Reyes] Error de conexión a MySQL: %s en %s:%d',
+            $e->getMessage(),
+            $e->getFile(),
+            $e->getLine()
+        ));
+
         http_response_code(500);
         echo '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">';
         echo '<title>Error de conexión</title></head><body style="font-family:Arial;padding:40px">';
         echo '<h1>No se pudo conectar con la base de datos</h1>';
         echo '<p>Verifica que MySQL esté activo en XAMPP y que hayas importado ';
         echo '<strong>sql/de_todito_reyes.sql</strong> en phpMyAdmin.</p>';
-        echo '<p style="color:#b91c1c">' . htmlspecialchars($e->getMessage()) . '</p>';
+        echo '<p>Si el problema continúa, contacta al administrador del sistema.</p>';
         echo '</body></html>';
         exit;
     }

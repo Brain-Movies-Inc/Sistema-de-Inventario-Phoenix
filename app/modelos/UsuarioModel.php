@@ -157,6 +157,35 @@ final class UsuarioModel
         $stmt->execute([':activo' => $activo ? 1 : 0, ':id' => $id]);
     }
 
+    /**
+     * Elimina un usuario solo si no tiene registros asociados.
+     *
+     * facturas, tasas_cambio_bcv, merma_ajustes y compras_proveedor apuntan a
+     * usuarios con ON DELETE RESTRICT: borrar la cuenta rompería el historial
+     * fiscal y de inventario. La bitácora sí se conserva (SET NULL).
+     */
+    public function eliminar(int $id): void
+    {
+        $stmt = $this->db->prepare(
+            "SELECT
+                (SELECT COUNT(*) FROM facturas WHERE id_usuario = :f)
+              + (SELECT COUNT(*) FROM tasas_cambio_bcv WHERE id_usuario = :t)
+              + (SELECT COUNT(*) FROM merma_ajustes WHERE id_usuario = :m)
+              + (SELECT COUNT(*) FROM compras_proveedor WHERE id_usuario = :c) AS total"
+        );
+        $stmt->execute([':f' => $id, ':t' => $id, ':m' => $id, ':c' => $id]);
+
+        if ((int) $stmt->fetchColumn() > 0) {
+            throw new RuntimeException(
+                'Este usuario tiene facturas, tasas, mermas o compras registradas y no se puede eliminar. ' .
+                'Desactívalo para bloquear su acceso sin perder el historial.'
+            );
+        }
+
+        $stmt = $this->db->prepare("DELETE FROM usuarios WHERE id_usuario = :id");
+        $stmt->execute([':id' => $id]);
+    }
+
     public function registrarBitacora(?int $idUsuario, string $accion, array $detalle): void
     {
         try {

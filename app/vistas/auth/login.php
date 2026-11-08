@@ -4,9 +4,10 @@ if (!defined('SISTEMA_DR')) {
     exit('Acceso no permitido.');
 }
 
-$flash = flashes();
-$login = $login ?? '';
-$error = $error ?? null;
+$flash         = flashes();
+$login         = $login ?? '';
+$cerrado       = (bool) ($cerrado ?? false);
+$reiniciado    = (bool) ($reiniciado ?? false);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -30,16 +31,16 @@ $error = $error ?? null;
         <h1>Iniciar sesión</h1>
         <p class="login-sub">Ingresa tus credenciales para continuar.</p>
 
-        <?php if (is_logged_in()): ?>
-            <div class="alert alert-ok">
+        <?php if ($reiniciado): ?>
+            <div class="alert alert-warn">
                 <span>
-                    Ya tienes una sesión activa como <?= e(current_user()['nombre_completo']) ?>.
-                    <a href="<?= e(url('panel')) ?>">Ir al panel</a>
+                    Por seguridad, cerramos la sesión anterior.
+                    Ingresa tu contraseña para continuar.
                 </span>
             </div>
         <?php endif; ?>
 
-        <?php if (isset($_GET['cerrado'])): ?>
+        <?php if ($cerrado): ?>
             <div class="alert alert-ok">
                 <span>Cerraste sesión correctamente.</span>
             </div>
@@ -50,12 +51,6 @@ $error = $error ?? null;
                 <span><?= e($item['mensaje']) ?></span>
             </div>
         <?php endforeach; ?>
-
-        <?php if ($error): ?>
-            <div class="alert alert-error">
-                <span><?= e($error) ?></span>
-            </div>
-        <?php endif; ?>
 
         <form method="POST" action="<?= e(url('login')) ?>" class="login-form">
             <?= csrf_field() ?>

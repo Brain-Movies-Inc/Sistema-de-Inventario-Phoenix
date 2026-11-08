@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="2140" viewBox="0 0 1100 2140">
+
+<defs>
+  <marker id="arrow-include" viewBox="0 0 10 10" refX="9" refY="5"
+          markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#7C3AED"/>
+  </marker>
+  <marker id="arrow-extend" viewBox="0 0 10 10" refX="9" refY="5"
+          markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#EA580C"/>
+  </marker>
+</defs>
+<rect x="0" y="0" width="1100" height="2140" fill="#FFFFFF"/>
+<text x="550.0" y="36" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#1E293B" font-weight="bold" text-anchor="middle" >Casos de uso del rol ADMIN — De Todito Reyes</text>
+<text x="550.0" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569" font-weight="normal" text-anchor="middle" >El administrador dispone de todos los módulos y de las tareas de configuración</text>
+<rect x="240" y="80" width="820" height="2000" rx="18" fill="#FFFFFF" stroke="#334155" stroke-width="2"/>
+<rect x="280" y="140" width="740" height="250" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 4"/>
+<rect x="280" y="420" width="740" height="340" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 4"/>
+<rect x="280" y="790" width="740" height="250" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 4"/>
+<rect x="280" y="1070" width="740" height="430" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 4"/>
+<rect x="280" y="1530" width="740" height="500" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.4" stroke-dasharray="6 4"/>
+<line x1="100" y1="1000" x2="650" y2="200" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="290" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="380" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="480" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="570" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="660" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="750" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="850" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="940" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="1030" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="1130" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="1220" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="1310" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="1400" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="1490" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="1590" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="1680" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="1770" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="1860" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<line x1="100" y1="1000" x2="650" y2="1950" stroke="#3B82F6" stroke-width="1.2" opacity="0.62"/>
+<g><ellipse cx="650" cy="200" rx="90.0" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="204.55">Iniciar sesión</tspan></text></g>
+<g><ellipse cx="650" cy="290" rx="90.0" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="294.55">Cerrar sesión</tspan></text></g>
+<g><ellipse cx="650" cy="380" rx="135.5" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="384.55">Consultar panel administrativo</tspan></text></g>
+<g><ellipse cx="650" cy="480" rx="90.0" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="484.55">Consultar clientes</tspan></text></g>
+<g><ellipse cx="650" cy="570" rx="90.0" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="574.55">Registrar cliente</tspan></text></g>
+<g><ellipse cx="650" cy="660" rx="90.0" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="664.55">Editar cliente</tspan></text></g>
+<g><ellipse cx="650" cy="750" rx="90.0" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="754.55">Eliminar cliente</tspan></text></g>
+<g><ellipse cx="650" cy="850" rx="93.15" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="854.55">Consultar productos</tspan></text></g>
+<g><ellipse cx="650" cy="940" rx="127.8" ry="44.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="927.55">Gestionar productos</tspan><tspan x="650" y="944.55">crear, editar,</tspan><tspan x="650" y="961.55">activar/desactivar, eliminar</tspan></text></g>
+<g><ellipse cx="650" cy="1030" rx="97.0" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="1034.55">Consultar stock bajo</tspan></text></g>
+<g><ellipse cx="650" cy="1130" rx="97.0" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="1134.55">Emitir factura (POS)</tspan></text></g>
+<g><ellipse cx="650" cy="1220" rx="131.65" ry="35.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="1216.05">Consultar historial de ventas</tspan><tspan x="650" y="1233.05">filtros y exportación CSV</tspan></text></g>
+<g><ellipse cx="650" cy="1310" rx="100.85000000000001" ry="35.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="1306.05">Consultar comprobante</tspan><tspan x="650" y="1323.05">PDF, PNG e impresión</tspan></text></g>
+<g><ellipse cx="650" cy="1400" rx="90.0" ry="35.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="1396.05">Anular factura</tspan><tspan x="650" y="1413.05">devuelve stock</tspan></text></g>
+<g><ellipse cx="650" cy="1490" rx="112.4" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="1494.55">Eliminar factura anulada</tspan></text></g>
+<g><ellipse cx="650" cy="1590" rx="90.0" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="1594.55">Consultar tasa BCV</tspan></text></g>
+<g><ellipse cx="650" cy="1680" rx="131.65" ry="26.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="1684.55">Registrar / corregir tasa BCV</tspan></text></g>
+<g><ellipse cx="650" cy="1770" rx="90.0" ry="35.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="1766.05">Registrar merma</tspan><tspan x="650" y="1783.05">descuenta stock</tspan></text></g>
+<g><ellipse cx="650" cy="1860" rx="116.25" ry="35.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="1856.05">Consultar mermas</tspan><tspan x="650" y="1873.05">incluye costos y pérdidas</tspan></text></g>
+<g><ellipse cx="650" cy="1950" rx="127.8" ry="44.0" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#1E3A8A" font-weight="normal" text-anchor="middle"><tspan x="650" y="1937.55">Gestionar usuarios</tspan><tspan x="650" y="1954.55">crear, editar, resetear,</tspan><tspan x="650" y="1971.55">activar/desactivar, eliminar</tspan></text></g>
+<g stroke="#1D4ED8" stroke-width="2" fill="none" stroke-linecap="round"><circle cx="100" cy="954" r="11" fill="#EFF6FF"/><path d="M 100 965 L 100 1005"/><path d="M 77 978 L 123 978"/><path d="M 100 1005 L 80 1038"/><path d="M 100 1005 L 120 1038"/></g><text x="100" y="1062" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#1D4ED8" font-weight="bold" text-anchor="middle" >ADMIN</text><text x="100" y="1080" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#475569" font-weight="normal" text-anchor="middle" >Administrador</text>
+<text x="650.0" y="110" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#334155" font-weight="bold" text-anchor="middle" >Sistema De Todito Reyes — Vista del ADMIN</text>
+<text x="294" y="164" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569" font-weight="bold" text-anchor="start" >Acceso y panel</text>
+<text x="294" y="444" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569" font-weight="bold" text-anchor="start" >Clientes</text>
+<text x="294" y="814" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569" font-weight="bold" text-anchor="start" >Productos</text>
+<text x="294" y="1094" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569" font-weight="bold" text-anchor="start" >Facturación</text>
+<text x="294" y="1554" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569" font-weight="bold" text-anchor="start" >Tasas BCV, mermas y usuarios</text>
+<rect x="300" y="2000" width="700" height="60" rx="8" fill="#FEFCE8" stroke="#CA8A04" stroke-width="1.4"/>
+<text x="312" y="2022" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#854D0E" font-weight="bold" text-anchor="start" >Tarea administrativa especial</text>
+<text x="312" y="2040" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#713F12" font-weight="normal" text-anchor="start" >Recuperación de acceso: script de consola tools/crear_admin.php (fuera de la web).</text>
+</svg>

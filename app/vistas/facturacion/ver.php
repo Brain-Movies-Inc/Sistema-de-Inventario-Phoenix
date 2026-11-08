@@ -12,7 +12,30 @@ require __DIR__ . '/../layout/header.php';
 <div class="page-actions no-print">
     <a class="btn btn-ghost" href="<?= e(url('facturacion')) ?>">← Volver a facturación</a>
     <div class="page-actions-right">
-        <button type="button" class="btn btn-primary" data-print>Imprimir / Guardar PDF</button>
+        <a class="btn btn-primary"
+           href="<?= e(url('facturacion/pdf/' . (int) $factura['id_factura'])) ?>">
+            Descargar PDF
+        </a>
+        <a class="btn btn-ghost"
+           href="<?= e(url('facturacion/imagen/' . (int) $factura['id_factura'])) ?>">
+            Descargar imagen
+        </a>
+        <a class="btn btn-ghost"
+           href="<?= e(url('facturacion/pdf/' . (int) $factura['id_factura'], ['ver' => 1])) ?>"
+           target="_blank" rel="noopener">
+            Imprimir
+        </a>
+        <?php if (!$esEmitida && is_admin()): ?>
+            <form method="POST" action="<?= e(url('facturacion')) ?>" class="inline-form">
+                <?= csrf_field() ?>
+                <input type="hidden" name="accion" value="eliminar">
+                <input type="hidden" name="id_factura" value="<?= (int) $factura['id_factura'] ?>">
+                <button type="submit" class="btn btn-danger"
+                        data-confirm="¿Eliminar esta factura anulada? Se borrarán también sus líneas y no se puede deshacer.">
+                    Eliminar factura
+                </button>
+            </form>
+        <?php endif; ?>
         <?php if ($esEmitida && is_admin()): ?>
             <form method="POST" action="<?= e(url('facturacion')) ?>" class="inline-form">
                 <?= csrf_field() ?>
@@ -42,6 +65,7 @@ require __DIR__ . '/../layout/header.php';
             <span class="ticket-tipo">FACTURA</span>
             <strong>N° <?= e($factura['nro_factura_consecutivo']) ?></strong>
             <small>Control: <?= e($factura['nro_control_fiscal']) ?></small>
+            <small>Código: <?= e($factura['codigo_verificacion']) ?></small>
             <small><?= e(date('d/m/Y H:i', strtotime((string) $factura['fecha_emision']))) ?></small>
             <span class="badge <?= estado_badge((string) $factura['estado']) ?>"><?= e($factura['estado']) ?></span>
         </div>
@@ -66,7 +90,7 @@ require __DIR__ . '/../layout/header.php';
         </div>
         <div>
             <span>Tasa BCV aplicada</span>
-            <strong>Bs <?= money($factura['tasa_bcv_aplicada'], 4) ?></strong>
+            <strong>Bs <?= numero($factura['tasa_bcv_aplicada'], 4) ?></strong>
         </div>
         <div>
             <span>Cajero</span>
@@ -95,7 +119,7 @@ require __DIR__ . '/../layout/header.php';
                         <?= e($l['nombre_producto']) ?>
                         <small class="muted"><?= e($l['codigo_qr_barras']) ?></small>
                     </td>
-                    <td class="num"><?= money3($l['cantidad_o_peso']) ?> <?= e($l['unidad_medida']) ?></td>
+                    <td class="num"><?= cantidad($l['cantidad_o_peso']) ?> <?= e($l['unidad_medida']) ?></td>
                     <td class="num">$ <?= money($l['precio_unitario_usd']) ?></td>
                     <td class="num"><?= money($l['precio_unitario_ves']) ?></td>
                     <td class="num"><?= money($l['alicuota_iva_item'], 2) ?>%</td>

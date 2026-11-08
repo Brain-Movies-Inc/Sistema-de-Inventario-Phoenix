@@ -32,6 +32,14 @@
         });
     }
 
+    // Cantidades: sin ceros decimales innecesarios (44 en vez de 44,000).
+    function formatoCantidad(valor) {
+        return Number(valor).toLocaleString('es-VE', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 3
+        });
+    }
+
     function filaProducto(id) {
         return root.querySelector('[data-producto][data-id="' + id + '"]');
     }
@@ -45,6 +53,11 @@
         var id = fila.getAttribute('data-id');
         var stock = parseFloat(fila.getAttribute('data-stock') || '0');
         var existente = carrito.get(id);
+
+        if (!(stock > 0)) {
+            window.alert('No hay stock disponible de ' + (fila.getAttribute('data-nombre') || 'este producto') + '.');
+            return;
+        }
 
         if (existente) {
             if (existente.cantidad + 1 > stock) {
@@ -112,7 +125,7 @@
                     return;
                 }
                 if (valor > item.stock) {
-                    window.alert('Solo hay ' + formato(item.stock, 3) + ' ' + item.unidad + ' disponibles.');
+                    window.alert('Solo hay ' + formatoCantidad(item.stock) + ' ' + item.unidad + ' disponibles.');
                     inputCantidad.value = item.stock;
                     item.cantidad = item.stock;
                 } else {

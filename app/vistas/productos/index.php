@@ -18,6 +18,19 @@ $valor = static function (string $campo, $defecto = '') use ($editar, $old) {
 
 $unidades = ['UND' => 'Unidad', 'KG' => 'Kilogramo', 'LT' => 'Litro', 'GR' => 'Gramo', 'PAQ' => 'Paquete'];
 
+$tasaValor          = (float) ($tasaValor ?? 0);
+$tasaDesactualizada = (bool) ($tasaDesactualizada ?? true);
+
+// Equivalente en bolívares a la tasa BCV vigente. Es solo una referencia:
+// el precio que se guarda y con el que se factura sigue siendo el USD.
+$enBs = static function ($usd) use ($tasaValor): string {
+    if ($tasaValor <= 0) {
+        return 'Sin tasa BCV';
+    }
+
+    return 'Bs ' . money((float) $usd * $tasaValor, 2);
+};
+
 require __DIR__ . '/../layout/header.php';
 ?>
 
@@ -33,11 +46,29 @@ require __DIR__ . '/../layout/header.php';
         <div class="panel-head">
             <div>
                 <h2><?= $esEdicion ? 'Editar producto' : 'Nuevo producto' ?></h2>
-                <p class="panel-sub">Los precios se guardan en dólares; el POS los convierte con la tasa BCV.</p>
+                <p class="panel-sub">
+                    Los precios se guardan en dólares y su equivalente en Bs se calcula
+                    con la tasa BCV vigente. El POS aplica la tasa del momento de la venta.
+                </p>
             </div>
         </div>
 
-        <form method="POST" action="<?= e(url('productos')) ?>" class="form-grid">
+        <?php if ($tasaValor <= 0): ?>
+            <div class="alert alert-warn">
+                <span>No hay una tasa BCV registrada. Los precios en Bs no se pueden calcular.</span>
+            </div>
+        <?php elseif ($tasaDesactualizada): ?>
+            <div class="alert alert-warn">
+                <span>
+                    La tasa BCV usada como referencia es del
+                    <?= e(date('d/m/Y H:i', strtotime((string) $tasa['fecha_vigencia']))) ?>.
+                    <a href="<?= e(url('tasas')) ?>">Actualiza la tasa del día</a> para que el cálculo en Bs sea el correcto.
+                </span>
+            </div>
+        <?php endif; ?>
+
+        <form method="POST" action="<?= e(url('productos')) ?>" class="form-grid"
+              data-productos-form data-tasa="<?= e(input_number($tasaValor, 4)) ?>">
             <?= csrf_field() ?>
             <input type="hidden" name="accion" value="guardar">
             <input type="hidden" name="id_producto" value="<?= $esEdicion ? (int) $editar['id_producto'] : 0 ?>">
@@ -91,15 +122,29 @@ require __DIR__ . '/../layout/header.php';
             </label>
 
             <label class="field">
-                <span>Costo USD</span>
-                <input type="number" name="costo_usd" min="0" step="0.001" required
+                <span>Costo en USD</span>
+                <input type="number" id="costo_usd" name="costo_usd" min="0" step="0.001" required
+                       data-usd="costo"
                        value="<?= e($valor('costo_usd', '0.000')) ?>">
             </label>
 
             <label class="field">
-                <span>Precio de venta USD</span>
-                <input type="number" name="precio_venta_usd" min="0" step="0.001" required
+                <span>Costo en Bs (BCV)</span>
+                <input type="text" data-bs="costo" readonly
+                       value="<?= e($enBs($valor('costo_usd', 0))) ?>">
+            </label>
+
+            <label class="field">
+                <span>Precio de venta en USD</span>
+                <input type="number" id="precio_venta_usd" name="precio_venta_usd" min="0" step="0.001" required
+                       data-usd="venta"
                        value="<?= e($valor('precio_venta_usd', '0.000')) ?>">
+            </label>
+
+            <label class="field">
+                <span>Precio de venta en Bs (BCV)</span>
+                <input type="text" data-bs="venta" readonly
+                       value="<?= e($enBs($valor('precio_venta_usd', 0))) ?>">
             </label>
 
             <label class="field">
@@ -180,8 +225,8 @@ require __DIR__ . '/../layout/header.php';
                         <tr>
                             <th>Producto</th>
                             <th>Categoría</th>
-                            <th class="num">Costo $</th>
-                            <th class="num">Venta $</th>
+                            <th class="num">Costo</th>
+                            <th class="num">Venta</th>
                             <th class="num">IVA</th>
                             <th class="num">Stock</th>
                             <th>Estado</th>
@@ -201,12 +246,18 @@ require __DIR__ . '/../layout/header.php';
                                 <small class="muted"><?= e($p['codigo_qr_barras']) ?></small>
                             </td>
                             <td><?= e($p['nombre_categoria']) ?></td>
-                            <td class="num">$ <?= money($p['costo_usd']) ?></td>
-                            <td class="num">$ <?= money($p['precio_venta_usd']) ?></td>
+                            <td class="num">
+                                $ <?= money($p['costo_usd']) ?>
+                                <small class="muted"><?= e($enBs($p['costo_usd'])) ?></small>
+                            </td>
+                            <td class="num">
+                                $ <?= money($p['precio_venta_usd']) ?>
+                                <small class="muted"><?= e($enBs($p['precio_venta_usd'])) ?></small>
+                            </td>
                             <td class="num"><?= money($p['alicuota_iva'], 2) ?>%</td>
                             <td class="num">
                                 <span class="badge <?= $claseStock ?>">
-                                    <?= money3($stock) ?> <?= e($p['unidad_medida']) ?>
+                                    <?= cantidad($stock) ?> <?= e($p['unidad_medida']) ?>
                                 </span>
                             </td>
                             <td>
@@ -229,6 +280,15 @@ require __DIR__ . '/../layout/header.php';
                                         <?= (int) $p['activo'] === 1 ? 'Desactivar' : 'Reactivar' ?>
                                     </button>
                                 </form>
+                                <form method="POST" action="<?= e(url('productos')) ?>" class="inline-form">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="accion" value="eliminar">
+                                    <input type="hidden" name="id_producto" value="<?= (int) $p['id_producto'] ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger"
+                                            data-confirm="¿Eliminar este producto de forma permanente? Si tiene ventas, compras o mermas no se podrá borrar.">
+                                        Eliminar
+                                    </button>
+                                </form>
                             </td>
                             <?php endif; ?>
                         </tr>
@@ -240,10 +300,15 @@ require __DIR__ . '/../layout/header.php';
             <div class="empty">
                 <span class="empty-icon">▣</span>
                 <p>No hay productos con esos filtros.</p>
-                <a class="btn btn-primary" href="<?= e(url('productos')) ?>">Crear el primero</a>
+                <?php if (is_admin()): ?>
+                    <a class="btn btn-primary" href="<?= e(url('productos')) ?>">Crear el primero</a>
+                <?php else: ?>
+                    <a class="btn btn-ghost" href="<?= e(url('productos')) ?>">Limpiar filtros</a>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
     </section>
 </div>
 
+<?php $scripts = '<script src="' . e(url('assets/js/productos.js')) . '"></script>'; ?>
 <?php require __DIR__ . '/../layout/footer.php'; ?>

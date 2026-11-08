@@ -134,6 +134,34 @@ final class ProductoModel
         $stmt->execute([':activo' => $activo ? 1 : 0, ':id' => $id]);
     }
 
+    /**
+     * Elimina un producto solo si no tiene movimientos asociados.
+     *
+     * Las claves foráneas de detalle_factura, detalle_compra y merma_ajustes
+     * son RESTRICT: borrar un producto con historial rompería la trazabilidad.
+     * En ese caso se avisa y se sugiere desactivarlo.
+     */
+    public function eliminar(int $id): void
+    {
+        $stmt = $this->db->prepare(
+            "SELECT
+                (SELECT COUNT(*) FROM detalle_factura WHERE id_producto = :f)
+              + (SELECT COUNT(*) FROM detalle_compra WHERE id_producto = :c)
+              + (SELECT COUNT(*) FROM merma_ajustes WHERE id_producto = :m) AS total"
+        );
+        $stmt->execute([':f' => $id, ':c' => $id, ':m' => $id]);
+
+        if ((int) $stmt->fetchColumn() > 0) {
+            throw new RuntimeException(
+                'Este producto tiene ventas, compras o mermas registradas y no se puede eliminar. ' .
+                'Desactívalo para que deje de aparecer en el punto de venta.'
+            );
+        }
+
+        $stmt = $this->db->prepare("DELETE FROM productos WHERE id_producto = :id");
+        $stmt->execute([':id' => $id]);
+    }
+
     private function parametros(array $datos): array
     {
         return [

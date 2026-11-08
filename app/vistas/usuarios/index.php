@@ -166,6 +166,15 @@ require __DIR__ . '/../layout/header.php';
                                             <?= (int) $u['activo'] === 1 ? 'Desactivar' : 'Reactivar' ?>
                                         </button>
                                     </form>
+                                    <form method="POST" action="<?= e(url('usuarios')) ?>" class="inline-form">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="accion" value="eliminar">
+                                        <input type="hidden" name="id_usuario" value="<?= (int) $u['id_usuario'] ?>">
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                                data-confirm="¿Eliminar este usuario de forma permanente? Si tiene facturas, tasas, mermas o compras no se podrá borrar.">
+                                            Eliminar
+                                        </button>
+                                    </form>
                                 <?php endif; ?>
                             </td>
                         </tr>

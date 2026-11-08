@@ -23,7 +23,19 @@ require __DIR__ . '/../layout/header.php';
 
 <?php if (!$tasa): ?>
     <div class="alert alert-error">
-        No hay una tasa BCV vigente. Registra la tasa del día en <code>tasas_cambio_bcv</code> antes de facturar.
+        No hay una tasa BCV registrada. Un administrador debe registrar la tasa del día antes de facturar.
+    </div>
+<?php elseif (!empty($tasaDesactualizada)): ?>
+    <div class="alert alert-warn">
+        <span>
+            La tasa BCV vigente es del
+            <?= e(date('d/m/Y H:i', strtotime((string) $tasa['fecha_vigencia']))) ?>.
+            <?php if (is_admin()): ?>
+                <a href="<?= e(url('tasas')) ?>">Actualiza la tasa del día</a> antes de emitir nuevas ventas.
+            <?php else: ?>
+                Solicita al administrador que actualice la tasa del día.
+            <?php endif; ?>
+        </span>
     </div>
 <?php endif; ?>
 
@@ -86,7 +98,7 @@ require __DIR__ . '/../layout/header.php';
                                 <small class="muted">Bs <?= money((float) $p['precio_venta_usd'] * $tasaValor) ?></small>
                             </td>
                             <td class="num">
-                                <span class="badge <?= $claseStock ?>"><?= money3($stock) ?></span>
+                                <span class="badge <?= $claseStock ?>"><?= cantidad($stock) ?></span>
                             </td>
                             <td>
                                 <button type="button" class="btn btn-sm btn-primary" data-agregar
@@ -170,7 +182,7 @@ require __DIR__ . '/../layout/header.php';
             </label>
 
             <div class="resumen">
-                <div><span>Tasa BCV</span><strong>Bs <?= money($tasaValor, 4) ?></strong></div>
+                <div><span>Tasa BCV</span><strong>Bs <?= numero($tasaValor, 4) ?></strong></div>
                 <div><span>Exento</span><strong data-resumen-exento>Bs 0,00</strong></div>
                 <div><span>Base imponible</span><strong data-resumen-base>Bs 0,00</strong></div>
                 <div><span>IVA</span><strong data-resumen-iva>Bs 0,00</strong></div>

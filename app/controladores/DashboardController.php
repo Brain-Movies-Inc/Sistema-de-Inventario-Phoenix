@@ -1,18 +1,47 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../modelos/DashboardModel.php';
+/**
+ * Panel principal.
+ *
+ * ADMIN ve el resumen operativo completo del negocio. El CAJERO tiene un
+ * panel propio, limitado a sus ventas, sin inventario, costos ni usuarios.
+ */
+final class DashboardController extends BaseController
+{
+    public function index(): void
+    {
+        $this->exigirLogin();
 
-$modelo = new DashboardModel();
+        $modelo = new DashboardModel();
+        $tasa   = $modelo->tasaVigente();
 
-$resumen         = $modelo->resumen();
-$tasa            = $modelo->tasaVigente();
-$stockBajo       = $modelo->stockBajo(8);
-$ultimasFacturas = $modelo->ultimasFacturas(6);
-$topProductos    = $modelo->topProductos(5);
+        if (!is_admin()) {
+            $this->render('dashboard/cajero', [
+                'titulo'             => 'Mi panel',
+                'subtitulo'          => 'Resumen de tus ventas y accesos rápidos',
+                'activo'             => 'inicio',
+                'resumen'            => $modelo->resumenCajero(current_user_id()),
+                'ultimasFacturas'    => $modelo->ultimasFacturasCajero(current_user_id(), 8),
+                'mermas'             => $modelo->resumenMermas(4),
+                'tasa'               => $tasa,
+                'tasaDesactualizada' => tasa_desactualizada($tasa),
+            ]);
 
-$titulo    = 'Panel principal';
-$subtitulo = 'Resumen operativo del negocio';
-$activo    = 'inicio';
+            return;
+        }
 
-require __DIR__ . '/../vistas/dashboard/index.php';
+        $this->render('dashboard/index', [
+            'titulo'             => 'Panel principal',
+            'subtitulo'          => 'Resumen operativo del negocio',
+            'activo'             => 'inicio',
+            'resumen'            => $modelo->resumen(),
+            'tasa'               => $tasa,
+            'tasaDesactualizada' => tasa_desactualizada($tasa),
+            'stockBajo'          => $modelo->stockBajo(8),
+            'ultimasFacturas'    => $modelo->ultimasFacturas(6),
+            'topProductos'       => $modelo->topProductos(5),
+            'mermas'             => $modelo->resumenMermas(5),
+        ]);
+    }
+}

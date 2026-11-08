@@ -1,20 +1,27 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../modelos/UsuarioModel.php';
+/**
+ * Cierre de sesión por POST y con token CSRF.
+ */
+final class LogoutController extends BaseController
+{
+    public function logout(): void
+    {
+        if (!$this->esPost()) {
+            $this->redirigir('login');
+        }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    redirect(url('login'));
+        csrf_verify();
+
+        if (is_logged_in()) {
+            $modelo = new UsuarioModel();
+            $modelo->registrarBitacora(current_user_id(), 'LOGOUT', [
+                'usuario' => current_user()['usuario_login'],
+            ]);
+        }
+
+        logout_user();
+        $this->redirigir('login', ['cerrado' => 1]);
+    }
 }
-
-csrf_verify();
-
-if (is_logged_in()) {
-    $modelo = new UsuarioModel();
-    $modelo->registrarBitacora(current_user_id(), 'LOGOUT', [
-        'usuario' => current_user()['usuario_login'],
-    ]);
-}
-
-logout_user();
-redirect(url('login', ['cerrado' => 1]));

@@ -1,0 +1,131 @@
+@startuml
+' ============================================================
+'  Diagrama general de casos de uso
+'  Sistema: De Todito Reyes
+'  Roles: ADMIN (administrador) y CAJERO
+' ============================================================
+left to right direction
+skinparam defaultFontName "Arial"
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor #E2E8F0
+  BorderColor #475569
+  FontSize 13
+}
+skinparam actor {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontSize 13
+}
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #334155
+}
+
+actor "ADMIN\nAdministrador" as A
+actor "CAJERO\nCajero" as C
+
+rectangle "Sistema De Todito Reyes\nGestión y facturación" as SISTEMA {
+
+  package "Acceso y panel" {
+    usecase "Iniciar sesión" as UC_LOGIN #E2E8F0
+    usecase "Cerrar sesión" as UC_LOGOUT #E2E8F0
+    usecase "Consultar panel\nadministrativo" as UC_PANEL_ADMIN #DBEAFE
+    usecase "Consultar panel\npersonal del cajero" as UC_PANEL_CAJERO #DCFCE7
+  }
+
+  package "Clientes" {
+    usecase "Consultar clientes" as UC_CLI_VER #E2E8F0
+    usecase "Registrar cliente" as UC_CLI_CREAR #E2E8F0
+    usecase "Editar cliente" as UC_CLI_EDIT #DBEAFE
+    usecase "Eliminar cliente" as UC_CLI_DEL #DBEAFE
+  }
+
+  package "Productos" {
+    usecase "Consultar productos" as UC_PROD_VER #DBEAFE
+    usecase "Gestionar productos" as UC_PROD_GEST #DBEAFE
+  }
+
+  package "Facturación" {
+    usecase "Emitir factura (POS)" as UC_FACT_EMIT #E2E8F0
+    usecase "Consultar historial\nde ventas" as UC_FACT_HIST #E2E8F0
+    usecase "Consultar comprobante" as UC_FACT_VER #E2E8F0
+    usecase "Exportar resumen CSV" as UC_FACT_CSV_R #E2E8F0
+    usecase "Exportar detalle CSV" as UC_FACT_CSV_D #E2E8F0
+    usecase "Anular factura" as UC_FACT_ANULAR #DBEAFE
+    usecase "Eliminar factura\nanulada" as UC_FACT_DEL #DBEAFE
+  }
+
+  package "Tasas BCV" {
+    usecase "Consultar tasa BCV\ne historial" as UC_TASA_VER #E2E8F0
+    usecase "Registrar / corregir\ntasa BCV" as UC_TASA_GEST #DBEAFE
+  }
+
+  package "Mermas" {
+    usecase "Registrar merma" as UC_MERMA_REG #E2E8F0
+    usecase "Consultar mermas" as UC_MERMA_VER #E2E8F0
+  }
+
+  package "Usuarios" {
+    usecase "Gestionar usuarios" as UC_USER_GEST #DBEAFE
+  }
+}
+
+' ---- Acceso y panel ----
+A --> UC_LOGIN
+A --> UC_LOGOUT
+A --> UC_PANEL_ADMIN
+C --> UC_LOGIN
+C --> UC_LOGOUT
+C --> UC_PANEL_CAJERO
+
+' ---- Clientes ----
+A --> UC_CLI_VER
+A --> UC_CLI_CREAR
+A --> UC_CLI_EDIT
+A --> UC_CLI_DEL
+C --> UC_CLI_VER
+C --> UC_CLI_CREAR
+
+' ---- Productos ----
+A --> UC_PROD_VER
+A --> UC_PROD_GEST
+
+' ---- Facturación ----
+A --> UC_FACT_EMIT
+A --> UC_FACT_HIST
+A --> UC_FACT_VER
+A --> UC_FACT_CSV_R
+A --> UC_FACT_CSV_D
+A --> UC_FACT_ANULAR
+A --> UC_FACT_DEL
+C --> UC_FACT_EMIT
+C --> UC_FACT_HIST
+C --> UC_FACT_VER
+C --> UC_FACT_CSV_R
+C --> UC_FACT_CSV_D
+
+' ---- Tasas ----
+A --> UC_TASA_VER
+A --> UC_TASA_GEST
+C --> UC_TASA_VER
+
+' ---- Mermas ----
+A --> UC_MERMA_REG
+A --> UC_MERMA_VER
+C --> UC_MERMA_REG
+C --> UC_MERMA_VER
+
+' ---- Usuarios ----
+A --> UC_USER_GEST
+
+legend right
+  **Referencias**
+  Azul: exclusivo de ADMIN
+  Verde: exclusivo de CAJERO
+  Gris: disponible para ambos roles
+  Las líneas continuas indican asociación actor–caso de uso.
+endlegend
+
+@enduml

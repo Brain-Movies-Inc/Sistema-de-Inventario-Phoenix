@@ -367,6 +367,23 @@ code {
     font-size: 12px;
 }
 
+/* Resumen compacto dentro del panel de merma del inicio. */
+.merma-resumen {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+}
+
+.merma-valor {
+    display: block;
+    margin-top: 4px;
+    font-size: 21px;
+    letter-spacing: -.01em;
+}
+
 /* ============================================================
    Paneles
    ============================================================ */
@@ -669,6 +686,13 @@ select:focus,
 textarea:focus {
     border-color: var(--primary-600);
     box-shadow: 0 0 0 3px rgba(13, 148, 136, .15);
+}
+
+input[readonly] {
+    background: #f1f5f9;
+    color: #0f766e;
+    font-weight: 700;
+    cursor: default;
 }
 
 input[type="checkbox"] {
@@ -1149,6 +1173,10 @@ input[type="checkbox"] {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
+    .merma-resumen {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .grid-sidebar,
     .pos {
         grid-template-columns: 1fr;
@@ -1280,6 +1308,22 @@ input[type="checkbox"] {
         border: 0;
         border-radius: 0;
         box-shadow: none;
+    }
+
+    /* Aunque la pantalla sea angosta, el ticket impreso conserva sus columnas. */
+    .ticket-head {
+        grid-template-columns: minmax(0, 1fr) auto;
+        display: grid;
+    }
+
+    .ticket-cliente {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        display: grid;
+    }
+
+    .ticket-fiscal {
+        justify-items: end;
+        text-align: right;
     }
 
     .ticket-tabla {

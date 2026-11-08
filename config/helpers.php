@@ -4,6 +4,9 @@ declare(strict_types=1);
 define('SISTEMA_DR', true);
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
+    // Rechaza IDs de sesión no generados por el servidor (fijación de sesión).
+    ini_set('session.use_strict_mode', '1');
+
     session_set_cookie_params([
         'lifetime' => 0,
         'path'     => '/',
@@ -34,6 +37,57 @@ function money($value, int $decimals = 2): string
 function money3($value): string
 {
     return money($value, 3);
+}
+
+/**
+ * Formato de cantidades: 44 → 44, 1,5 → 1,5, 1,234 → 1,234.
+ *
+ * Evita mostrar «44,000» (que en español se lee como cuarenta y cuatro mil)
+ * cuando la cantidad es un número entero. Las cantidades se guardan con hasta
+ * tres decimales (peso, litros, gramos).
+ */
+function cantidad($value): string
+{
+    return numero($value, 3);
+}
+
+/**
+ * Formato numérico general sin ceros decimales innecesarios.
+ *
+ * Se usa, por ejemplo, para la tasa BCV: 36,5000 → 36,5 y 900,0000 → 900.
+ * El máximo de decimales permite conservar la precisión de la tasa.
+ */
+function numero($value, int $decimales = 4): string
+{
+    $numero = (float) $value;
+
+    if ($numero == 0.0) {
+        return '0';
+    }
+
+    $decimales = max(0, min(6, $decimales));
+    $texto = number_format($numero, $decimales, ',', '.');
+    $texto = rtrim(rtrim($texto, '0'), ',');
+
+    return $texto === '' || $texto === '-' ? '0' : $texto;
+}
+
+/**
+ * Número para un input type="number": sin ceros sobrantes y con punto decimal.
+ */
+function input_cantidad($value, int $decimales = 4): string
+{
+    $numero = (float) $value;
+
+    if ($numero == 0.0) {
+        return '0';
+    }
+
+    $decimales = max(0, min(6, $decimales));
+    $texto = number_format($numero, $decimales, '.', '');
+    $texto = rtrim(rtrim($texto, '0'), '.');
+
+    return $texto === '' || $texto === '-' ? '0' : $texto;
 }
 
 /**
@@ -119,12 +173,46 @@ function csrf_field(): string
 
 function csrf_verify(): void
 {
-    $token = $_POST['csrf'] ?? '';
-    if (!is_string($token) || !hash_equals($_SESSION['csrf_token'] ?? '', $token)) {
+    $token    = $_POST['csrf'] ?? '';
+    $esperado = $_SESSION['csrf_token'] ?? '';
+
+    // Un token vacío nunca es válido: sin esta comprobación, una petición sin
+    // sesión compararía "" con "" y pasaría la validación (CSRF).
+    if (!is_string($token)
+        || !is_string($esperado)
+        || $token === ''
+        || $esperado === ''
+        || !hash_equals($esperado, $token)
+    ) {
         http_response_code(419);
-        exit('La sesión expiró. Recarga la página e inténtalo de nuevo.');
+        exit('La sesión expiró o la solicitud no es válida. Recarga la página e inténtalo de nuevo.');
     }
 }
+
+/**
+ * Cabeceras de seguridad comunes a todas las respuestas.
+ *
+ * La CSP bloquea scripts inline y recursos externos: aunque una salida se
+ * escapara mal, el navegador no ejecutaría un <script> inyectado.
+ */
+function security_headers(): void
+{
+    if (headers_sent()) {
+        return;
+    }
+
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: same-origin');
+    header(
+        "Content-Security-Policy: default-src 'self'; " .
+        "base-uri 'self'; form-action 'self'; frame-ancestors 'none'; " .
+        "object-src 'none'; img-src 'self' data:; " .
+        "style-src 'self' 'unsafe-inline'; script-src 'self'"
+    );
+}
+
+security_headers();
 
 /**
  * Usuario autenticado en la sesión actual.
@@ -158,6 +246,28 @@ function is_admin(): bool
     return (current_user()['rol'] ?? '') === 'ADMIN';
 }
 
+function is_cajero(): bool
+{
+    return (current_user()['rol'] ?? '') === 'CAJERO';
+}
+
+/**
+ * Impide que el navegador guarde en caché páginas con datos de sesión.
+ *
+ * Sin esto, el botón «Atrás» puede mostrar el panel de un usuario que ya
+ * cerró sesión, dando la impresión de que se entró sin contraseña.
+ */
+function no_cache_headers(): void
+{
+    if (headers_sent()) {
+        return;
+    }
+
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+}
+
 /**
  * Guarda al usuario en la sesión y renueva el id de sesión (evita fijación).
  */
@@ -175,6 +285,22 @@ function login_user(array $usuario): void
 
     // Token CSRF nuevo para la sesión autenticada.
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+/**
+ * Sincroniza los datos del usuario en la sesión después de que un ADMIN
+ * edita su propia cuenta (nombre, login o rol), para no conservar valores
+ * obsoletos hasta el próximo inicio de sesión.
+ */
+function refresh_session_user(array $usuario): void
+{
+    if (!isset($_SESSION['usuario']) || !is_array($_SESSION['usuario'])) {
+        return;
+    }
+
+    $_SESSION['usuario']['nombre_completo'] = (string) ($usuario['nombre_completo'] ?? '');
+    $_SESSION['usuario']['usuario_login']   = (string) ($usuario['usuario_login'] ?? '');
+    $_SESSION['usuario']['rol']             = (string) ($usuario['rol'] ?? '');
 }
 
 function logout_user(): void
@@ -198,10 +324,46 @@ function logout_user(): void
 }
 
 /**
+ * Revalida la cuenta contra la base de datos en cada petición autenticada.
+ *
+ * Así una desactivación o un cambio de rol surte efecto de inmediato, sin
+ * esperar a que el usuario cierre sesión. También sincroniza nombre y login
+ * por si un ADMIN editó la cuenta mientras estaba conectada.
+ */
+function validar_sesion_actual(): void
+{
+    $id = current_user_id();
+
+    if ($id <= 0) {
+        return;
+    }
+
+    $stmt = db()->prepare(
+        "SELECT nombre_completo, usuario_login, rol, activo
+         FROM usuarios
+         WHERE id_usuario = :id
+         LIMIT 1"
+    );
+    $stmt->execute([':id' => $id]);
+    $usuario = $stmt->fetch();
+
+    if (!$usuario || (int) $usuario['activo'] !== 1) {
+        unset($_SESSION['usuario'], $_SESSION['ultima_actividad']);
+        session_regenerate_id(true);
+        flash('warn', 'Tu cuenta ya no está activa o fue eliminada. Inicia sesión de nuevo.');
+        redirect(url('login'));
+    }
+
+    refresh_session_user($usuario);
+}
+
+/**
  * Exige sesión iniciada y controla la inactividad (30 minutos).
  */
 function require_login(): void
 {
+    no_cache_headers();
+
     if (!is_logged_in()) {
         redirect(url('login'));
     }
@@ -215,6 +377,8 @@ function require_login(): void
         flash('warn', 'Tu sesión expiró por inactividad. Inicia sesión de nuevo.');
         redirect(url('login'));
     }
+
+    validar_sesion_actual();
 
     $_SESSION['ultima_actividad'] = time();
 }
@@ -249,4 +413,51 @@ function metodo_pago_label(string $metodo): string
 function estado_badge(string $estado): string
 {
     return $estado === 'ANULADA' ? 'badge-danger' : 'badge-ok';
+}
+
+/**
+ * Indica si la tasa vigente no corresponde al día de hoy.
+ */
+function tasa_desactualizada(?array $tasa): bool
+{
+    if (!$tasa || empty($tasa['fecha_vigencia'])) {
+        return true;
+    }
+
+    $fecha = strtotime((string) $tasa['fecha_vigencia']);
+
+    if ($fecha === false) {
+        return true;
+    }
+
+    return date('Y-m-d', $fecha) < date('Y-m-d');
+}
+
+/**
+ * Devuelve un mensaje seguro para el usuario y deja el detalle técnico
+ * únicamente en el registro del servidor.
+ *
+ * Las excepciones de validación y las reglas de negocio de la aplicación
+ * contienen mensajes escritos para el usuario; PDOException y los errores
+ * internos de PHP nunca se exponen en pantalla.
+ */
+function error_usuario(Throwable $e, string $contexto = 'operación'): string
+{
+    error_log(sprintf(
+        '[De Todito Reyes] Error al %s: %s en %s:%d',
+        $contexto,
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine()
+    ));
+
+    if ($e instanceof PDOException || $e instanceof Error) {
+        return 'No se pudo completar la ' . $contexto . '. Intenta de nuevo o contacta al administrador.';
+    }
+
+    if ($e instanceof InvalidArgumentException || $e instanceof RuntimeException) {
+        return $e->getMessage();
+    }
+
+    return 'No se pudo completar la ' . $contexto . '. Intenta de nuevo o contacta al administrador.';
 }

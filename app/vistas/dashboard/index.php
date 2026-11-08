@@ -9,10 +9,33 @@ $valorCostoUsd = (float) ($resumen['valor_costo_usd'] ?? 0);
 $valorVentaUsd = (float) ($resumen['valor_venta_usd'] ?? 0);
 $vendidoUsd    = (float) ($resumen['total_vendido_usd'] ?? 0);
 $vendidoVes    = (float) ($resumen['total_vendido_ves'] ?? 0);
-$perdidasUsd   = (float) ($resumen['perdidas_usd'] ?? 0);
+
+$mermaCantidad   = (int) ($mermas['cantidad'] ?? 0);
+$mermaMes        = (int) ($mermas['cantidad_mes'] ?? 0);
+$mermaPerdida    = (float) ($mermas['perdida_usd'] ?? 0);
+$mermaPerdidaMes = (float) ($mermas['perdida_mes_usd'] ?? 0);
+$mermaUltimas    = is_array($mermas['ultimas'] ?? null) ? $mermas['ultimas'] : [];
 
 require __DIR__ . '/../layout/header.php';
 ?>
+
+<?php if (!empty($tasaDesactualizada)): ?>
+    <div class="alert alert-warn">
+        <span>
+            <?php if ($tasa): ?>
+                La tasa BCV vigente es del
+                <?= e(date('d/m/Y H:i', strtotime((string) $tasa['fecha_vigencia']))) ?>.
+            <?php else: ?>
+                No hay una tasa BCV registrada.
+            <?php endif; ?>
+            <?php if (is_admin()): ?>
+                <a href="<?= e(url('tasas')) ?>">Actualiza la tasa del día</a> para que las nuevas ventas usen el valor correcto.
+            <?php else: ?>
+                Solicita al administrador que actualice la tasa del día.
+            <?php endif; ?>
+        </span>
+    </div>
+<?php endif; ?>
 
 <section class="stats-grid">
     <article class="stat-card">
@@ -30,14 +53,17 @@ require __DIR__ . '/../layout/header.php';
     <article class="stat-card">
         <span class="stat-label">Facturas emitidas</span>
         <strong class="stat-value"><?= (int) ($resumen['facturas'] ?? 0) ?></strong>
-        <small class="stat-foot"><?= (int) ($resumen['mermas'] ?? 0) ?> <?= (int) ($resumen['mermas'] ?? 0) === 1 ? 'merma registrada' : 'mermas registradas' ?></small>
+        <small class="stat-foot">Solo ventas emitidas</small>
     </article>
 
     <article class="stat-card stat-card-rate">
         <span class="stat-label">Tasa BCV vigente</span>
-        <strong class="stat-value"><?= $tasa ? 'Bs ' . money($tasaValor, 4) : '—' ?></strong>
+        <strong class="stat-value"><?= $tasa ? 'Bs ' . numero($tasaValor, 4) : '—' ?></strong>
         <small class="stat-foot">
             <?= $tasa ? e(date('d/m/Y', strtotime((string) $tasa['fecha_vigencia']))) : 'Sin tasa registrada' ?>
+            <?php if (!empty($tasaDesactualizada)): ?>
+                · <a href="<?= e(url('tasas')) ?>">desactualizada</a>
+            <?php endif; ?>
         </small>
     </article>
 </section>
@@ -60,6 +86,76 @@ require __DIR__ . '/../layout/header.php';
         <strong class="stat-value">$ <?= money($vendidoUsd) ?></strong>
         <small class="stat-foot">Bs <?= money($vendidoVes) ?></small>
     </article>
+</section>
+
+<section class="panel">
+    <div class="panel-head">
+        <div>
+            <h2>Merma</h2>
+            <p class="panel-sub">Bajas de inventario y pérdida valorizada</p>
+        </div>
+        <a class="btn btn-sm btn-ghost" href="<?= e(url('mermas')) ?>">Registrar / ver mermas</a>
+    </div>
+
+    <div class="merma-resumen">
+        <div>
+            <span class="stat-label">Mermas registradas</span>
+            <strong class="merma-valor"><?= $mermaCantidad ?></strong>
+        </div>
+        <div>
+            <span class="stat-label">Mermas del mes</span>
+            <strong class="merma-valor"><?= $mermaMes ?></strong>
+        </div>
+        <div>
+            <span class="stat-label">Pérdida acumulada</span>
+            <strong class="merma-valor">$ <?= money($mermaPerdida) ?></strong>
+            <small class="muted">Bs <?= money($mermaPerdida * $tasaValor) ?></small>
+        </div>
+        <div>
+            <span class="stat-label">Pérdida del mes</span>
+            <strong class="merma-valor">$ <?= money($mermaPerdidaMes) ?></strong>
+            <small class="muted">Bs <?= money($mermaPerdidaMes * $tasaValor) ?></small>
+        </div>
+    </div>
+
+    <?php if ($mermaUltimas): ?>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th class="num">Cantidad</th>
+                        <th>Motivo</th>
+                        <th>Reportó</th>
+                        <th class="num">Pérdida $</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($mermaUltimas as $m): ?>
+                    <tr>
+                        <td><?= e(date('d/m/Y H:i', strtotime((string) $m['fecha_registro']))) ?></td>
+                        <td><?= e($m['nombre_producto']) ?></td>
+                        <td class="num">
+                            <?= cantidad($m['cantidad_baja']) ?> <?= e($m['unidad_medida']) ?>
+                        </td>
+                        <td><?= e(MermaModel::MOTIVOS[$m['tipo_motivo']] ?? $m['tipo_motivo']) ?></td>
+                        <td><?= e($m['usuario']) ?></td>
+                        <td class="num">
+                            $ <?= money((float) $m['cantidad_baja'] * (float) $m['costo_unitario_usd']) ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php else: ?>
+        <div class="empty">
+            <span class="empty-icon">▼</span>
+            <p>No hay mermas registradas.</p>
+            <a class="btn btn-primary" href="<?= e(url('mermas')) ?>">Reportar la primera</a>
+        </div>
+    <?php endif; ?>
 </section>
 
 <div class="grid-2">
@@ -93,10 +189,10 @@ require __DIR__ . '/../layout/header.php';
                             <td><?= e($p['nombre_categoria']) ?></td>
                             <td class="num">
                                 <span class="badge <?= (float) $p['stock_actual'] <= 0 ? 'badge-danger' : 'badge-warn' ?>">
-                                    <?= money3($p['stock_actual']) ?> <?= e($p['unidad_medida']) ?>
+                                    <?= cantidad($p['stock_actual']) ?> <?= e($p['unidad_medida']) ?>
                                 </span>
                             </td>
-                            <td class="num"><?= money3($p['faltante']) ?></td>
+                            <td class="num"><?= cantidad($p['faltante']) ?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
@@ -135,7 +231,7 @@ require __DIR__ . '/../layout/header.php';
                             <td><?= e($p['nombre_producto']) ?></td>
                             <td class="num">
                                 <span class="badge badge-info">
-                                    <?= money3($p['total_vendido']) ?> <?= e($p['unidad_medida']) ?>
+                                    <?= cantidad($p['total_vendido']) ?> <?= e($p['unidad_medida']) ?>
                                 </span>
                             </td>
                         </tr>
@@ -158,7 +254,7 @@ require __DIR__ . '/../layout/header.php';
             <h2>Últimas facturas</h2>
             <p class="panel-sub">Movimientos recientes del punto de venta</p>
         </div>
-        <a class="btn btn-sm btn-ghost" href="<?= e(url('facturacion')) ?>">Ver facturación</a>
+        <a class="btn btn-sm btn-ghost" href="<?= e(url('facturacion')) ?>">Ver historial y descargas</a>
     </div>
 
     <?php if ($ultimasFacturas): ?>
@@ -200,12 +296,5 @@ require __DIR__ . '/../layout/header.php';
         </div>
     <?php endif; ?>
 </section>
-
-<?php if ($perdidasUsd > 0): ?>
-    <p class="muted small-note">
-        Pérdidas acumuladas por merma: <strong>$ <?= money($perdidasUsd) ?></strong>
-        (Bs <?= money($perdidasUsd * $tasaValor) ?>).
-    </p>
-<?php endif; ?>
 
 <?php require __DIR__ . '/../layout/footer.php'; ?>

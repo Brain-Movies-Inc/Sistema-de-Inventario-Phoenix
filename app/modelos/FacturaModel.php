@@ -14,6 +14,12 @@ final class FacturaModel
         'MIXTO',
     ];
 
+    /**
+     * Bloqueo asesor de MySQL para serializar la generación del consecutivo
+     * entre varias cajas conectadas a la misma base de datos.
+     */
+    private const BLOQUEO_CONSECUTIVO = 'de_todito_reyes_factura_consecutivo';
+
     private PDO $db;
 
     public function __construct()
@@ -23,14 +29,8 @@ final class FacturaModel
 
     public function tasaVigente(): ?array
     {
-        $fila = $this->db->query(
-            "SELECT tasa_bcv_ves, fecha_vigencia, observacion
-             FROM tasas_cambio_bcv
-             ORDER BY fecha_vigencia DESC
-             LIMIT 1"
-        )->fetch();
-
-        return $fila ?: null;
+        // Una sola implementación de la consulta de la tasa vigente.
+        return (new TasaModel())->vigente();
     }
 
     public function clientes(): array
@@ -53,8 +53,101 @@ final class FacturaModel
         )->fetchAll();
     }
 
-    public function listar(string $estado = '', string $busqueda = '', int $limite = 100): array
-    {
+    public function listar(
+        string $estado = '',
+        string $busqueda = '',
+        int $limite = 100,
+        ?string $desde = null,
+        ?string $hasta = null
+    ): array {
+        [$where, $params] = $this->filtros($estado, $busqueda, $desde, $hasta);
+
+        $sql = $this->selectFacturas();
+
+        if ($where) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+
+        $sql .= ' ORDER BY f.id_factura DESC LIMIT :limite';
+
+        $stmt = $this->db->prepare($sql);
+
+        foreach ($params as $marcador => $valor) {
+            $stmt->bindValue($marcador, $valor);
+        }
+
+        $stmt->bindValue(':limite', max(1, $limite), PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    public function exportarResumen(
+        string $estado = '',
+        string $busqueda = '',
+        ?string $desde = null,
+        ?string $hasta = null
+    ): array {
+        [$where, $params] = $this->filtros($estado, $busqueda, $desde, $hasta);
+
+        $sql = $this->selectFacturas();
+
+        if ($where) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+
+        $sql .= ' ORDER BY f.id_factura ASC';
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
+    }
+
+    public function exportarDetalle(
+        string $estado = '',
+        string $busqueda = '',
+        ?string $desde = null,
+        ?string $hasta = null
+    ): array {
+        [$where, $params] = $this->filtros($estado, $busqueda, $desde, $hasta);
+
+        $sql = "SELECT f.nro_factura_consecutivo, f.nro_control_fiscal, f.fecha_emision,
+                       f.estado, f.metodo_pago, f.tasa_bcv_aplicada,
+                       cl.rif_cedula, cl.nombre_razon_social AS cliente,
+                       u.usuario_login AS cajero,
+                       p.codigo_qr_barras, p.nombre_producto, p.unidad_medida,
+                       d.cantidad_o_peso, d.precio_unitario_usd, d.precio_unitario_ves,
+                       d.alicuota_iva_item, d.monto_iva_item_ves, d.subtotal_item_ves
+                FROM facturas f
+                JOIN clientes cl ON cl.id_cliente = f.id_cliente
+                JOIN usuarios u ON u.id_usuario = f.id_usuario
+                JOIN detalle_factura d ON d.id_factura = f.id_factura
+                JOIN productos p ON p.id_producto = d.id_producto";
+
+        if ($where) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+
+        $sql .= ' ORDER BY f.id_factura ASC, d.id_detalle_factura ASC';
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Arma el WHERE compartido por el listado y las exportaciones.
+     *
+     * @return array{0: array<int, string>, 1: array<string, mixed>}
+     */
+    private function filtros(
+        string $estado,
+        string $busqueda,
+        ?string $desde,
+        ?string $hasta
+    ): array {
         $where  = [];
         $params = [];
 
@@ -66,35 +159,44 @@ final class FacturaModel
         if ($busqueda !== '') {
             $where[] = '(f.nro_factura_consecutivo LIKE :q1
                          OR f.nro_control_fiscal LIKE :q2
-                         OR cl.nombre_razon_social LIKE :q3
-                         OR cl.rif_cedula LIKE :q4)';
+                         OR f.codigo_verificacion LIKE :q3
+                         OR cl.nombre_razon_social LIKE :q4
+                         OR cl.rif_cedula LIKE :q5)';
             $like = '%' . $busqueda . '%';
             $params[':q1'] = $like;
             $params[':q2'] = $like;
             $params[':q3'] = $like;
             $params[':q4'] = $like;
+            $params[':q5'] = $like;
         }
 
-        $sql = "SELECT f.id_factura, f.nro_factura_consecutivo, f.nro_control_fiscal,
-                       f.fecha_emision, f.estado, f.metodo_pago, f.total_ves, f.total_usd,
-                       f.tasa_bcv_aplicada,
+        if ($desde !== null && $desde !== '') {
+            $where[] = 'f.fecha_emision >= :desde';
+            $params[':desde'] = $desde . ' 00:00:00';
+        }
+
+        if ($hasta !== null && $hasta !== '') {
+            $where[] = 'f.fecha_emision <= :hasta';
+            $params[':hasta'] = $hasta . ' 23:59:59';
+        }
+
+        return [$where, $params];
+    }
+
+    private function selectFacturas(): string
+    {
+        return "SELECT f.id_factura, f.nro_factura_consecutivo, f.nro_control_fiscal,
+                       f.codigo_verificacion,
+                       f.fecha_emision, f.estado, f.metodo_pago,
+                       f.subtotal_exento_ves, f.base_imponible_ves,
+                       f.monto_iva_ves, f.monto_igtf_ves,
+                       f.total_ves, f.total_usd, f.tasa_bcv_aplicada,
                        cl.nombre_razon_social AS cliente, cl.rif_cedula,
                        u.usuario_login AS cajero,
                        (SELECT COUNT(*) FROM detalle_factura d WHERE d.id_factura = f.id_factura) AS lineas
                 FROM facturas f
                 JOIN clientes cl ON cl.id_cliente = f.id_cliente
                 JOIN usuarios u ON u.id_usuario = f.id_usuario";
-
-        if ($where) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
-
-        $sql .= ' ORDER BY f.id_factura DESC LIMIT ' . max(1, $limite);
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-
-        return $stmt->fetchAll();
     }
 
     public function obtener(int $id): ?array
@@ -194,8 +296,11 @@ final class FacturaModel
             );
         }
 
-        // Se intenta hasta 3 veces por si dos cajas generan el mismo consecutivo.
-        for ($intento = 1; $intento <= 3; $intento++) {
+        $this->adquirirBloqueoConsecutivo();
+
+        try {
+            // Se intenta hasta 3 veces por si dos cajas generan el mismo consecutivo.
+            for ($intento = 1; $intento <= 3; $intento++) {
             try {
                 $this->db->beginTransaction();
 
@@ -218,7 +323,7 @@ final class FacturaModel
                     if ($cantidad > $stock + 0.0001) {
                         throw new RuntimeException(
                             'Stock insuficiente de "' . $producto['nombre_producto'] . '". ' .
-                            'Disponible: ' . money3($stock) . ' ' . $producto['unidad_medida'] . '.'
+                            'Disponible: ' . cantidad($stock) . ' ' . $producto['unidad_medida'] . '.'
                         );
                     }
 
@@ -259,12 +364,13 @@ final class FacturaModel
 
                 $stmt = $this->db->prepare(
                     "INSERT INTO facturas
-                        (nro_factura_consecutivo, nro_control_fiscal, tipo_emision, fecha_emision,
+                        (nro_factura_consecutivo, nro_control_fiscal, codigo_verificacion,
+                         tipo_emision, fecha_emision,
                          subtotal_exento_ves, base_imponible_ves, monto_iva_ves, monto_igtf_ves,
                          total_ves, total_usd, tasa_bcv_aplicada, metodo_pago, estado,
                          id_cliente, id_usuario)
                      VALUES
-                        (:nro, :control, 'SISTEMA', NOW(),
+                        (:nro, :control, :codigo, 'SISTEMA', NOW(),
                          :exento, :base, :iva, :igtf,
                          :total_ves, :total_usd, :tasa, :metodo, 'EMITIDA',
                          :cliente, :usuario)"
@@ -272,6 +378,7 @@ final class FacturaModel
                 $stmt->execute([
                     ':nro'       => $consecutivo['nro'],
                     ':control'   => $consecutivo['control'],
+                    ':codigo'    => $consecutivo['codigo'],
                     ':exento'    => $this->dec($exento),
                     ':base'      => $this->dec($base),
                     ':iva'       => $this->dec($iva),
@@ -331,11 +438,12 @@ final class FacturaModel
                 $this->db->commit();
 
                 return [
-                    'id_factura'  => $idFactura,
-                    'nro_factura' => $consecutivo['nro'],
-                    'total_ves'   => $totalVes,
-                    'total_usd'   => $totalUsd,
-                    'tasa'        => $tasaValor,
+                    'id_factura'          => $idFactura,
+                    'nro_factura'         => $consecutivo['nro'],
+                    'codigo_verificacion' => $consecutivo['codigo'],
+                    'total_ves'           => $totalVes,
+                    'total_usd'           => $totalUsd,
+                    'tasa'                => $tasaValor,
                 ];
             } catch (PDOException $e) {
                 if ($this->db->inTransaction()) {
@@ -357,9 +465,12 @@ final class FacturaModel
             }
         }
 
-        throw new RuntimeException(
-            'No se pudo generar un número de factura único. Intenta emitir de nuevo.'
-        );
+            throw new RuntimeException(
+                'No se pudo generar un número de factura único. Intenta emitir de nuevo.'
+            );
+        } finally {
+            $this->liberarBloqueoConsecutivo();
+        }
     }
 
     public function anular(int $idFactura, int $idUsuario): void
@@ -367,6 +478,11 @@ final class FacturaModel
         $this->db->beginTransaction();
 
         try {
+            // El trigger trg_facturas_au usa esta variable de sesión para
+            // registrar quién anuló (no el usuario que emitió la factura).
+            $this->db->prepare('SET @auditoria_usuario = :id')
+                ->execute([':id' => $idUsuario]);
+
             $stmt = $this->db->prepare(
                 "SELECT estado FROM facturas WHERE id_factura = :id FOR UPDATE"
             );
@@ -408,6 +524,56 @@ final class FacturaModel
             $stmt->execute([':id' => $idFactura]);
 
             // El trigger trg_facturas_au registra el cambio en la bitácora.
+            $this->db->commit();
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            throw $e;
+        } finally {
+            try {
+                $this->db->exec('SET @auditoria_usuario = NULL');
+            } catch (Throwable $e) {
+                // La conexión se cierra al terminar la petición.
+            }
+        }
+    }
+
+    /**
+     * Elimina una factura ANULADA y sus líneas.
+     *
+     * Solo se permite sobre facturas ya anuladas: una factura emitida es un
+     * registro fiscal que debe conservarse. El stock ya fue devuelto al
+     * anular, así que borrar no vuelve a tocar el inventario.
+     */
+    public function eliminar(int $idFactura): void
+    {
+        $this->db->beginTransaction();
+
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT estado FROM facturas WHERE id_factura = :id FOR UPDATE"
+            );
+            $stmt->execute([':id' => $idFactura]);
+            $factura = $stmt->fetch();
+
+            if (!$factura) {
+                throw new RuntimeException('La factura no existe.');
+            }
+
+            if ($factura['estado'] !== 'ANULADA') {
+                throw new RuntimeException(
+                    'Solo se pueden eliminar facturas anuladas. Anula la factura primero.'
+                );
+            }
+
+            $this->db->prepare("DELETE FROM detalle_factura WHERE id_factura = :id")
+                ->execute([':id' => $idFactura]);
+
+            $this->db->prepare("DELETE FROM facturas WHERE id_factura = :id")
+                ->execute([':id' => $idFactura]);
+
             $this->db->commit();
         } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
@@ -479,13 +645,20 @@ final class FacturaModel
     }
 
     /**
-     * @return array{nro:string, control:string}
+     * @return array{nro:string, control:string, codigo:string}
      */
     private function siguienteConsecutivo(): array
     {
         $fila = $this->db->query(
-            "SELECT COALESCE(MAX(CAST(nro_factura_consecutivo AS UNSIGNED)), 0) AS ultimo
-             FROM facturas"
+            "SELECT COALESCE(MAX(numero), 0) AS ultimo
+             FROM (
+                 SELECT CAST(nro_factura_consecutivo AS UNSIGNED) AS numero
+                 FROM facturas
+                 UNION ALL
+                 SELECT CAST(JSON_UNQUOTE(JSON_EXTRACT(detalle_json, '$.nro_factura')) AS UNSIGNED)
+                 FROM bitacora_auditoria
+                 WHERE modulo = 'FACTURAS' AND accion = 'EMISION'
+             ) AS numeracion"
         )->fetch();
 
         $siguiente = (int) ($fila['ultimo'] ?? 0) + 1;
@@ -494,7 +667,69 @@ final class FacturaModel
         return [
             'nro'     => $nro,
             'control' => '00-' . $nro,
+            'codigo'  => $this->codigoVerificacion(),
         ];
+    }
+
+    /**
+     * Código aleatorio de verificación que acompaña al consecutivo fiscal.
+     *
+     * Se excluyen letras y números que se confunden al leerlos o dictarlos
+     * (O/0, I/1, L, S/5). No sustituye la numeración consecutiva: solo permite
+     * comprobar que un comprobante fue emitido por el sistema.
+     */
+    private function codigoVerificacion(): string
+    {
+        $alfabeto = 'ABCDEFGHJKMNPQRTUVWXYZ2346789';
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM facturas WHERE codigo_verificacion = :codigo'
+        );
+
+        for ($intento = 0; $intento < 10; $intento++) {
+            $codigo = '';
+
+            for ($i = 0; $i < 8; $i++) {
+                $codigo .= $alfabeto[random_int(0, strlen($alfabeto) - 1)];
+            }
+
+            $stmt->execute([':codigo' => $codigo]);
+
+            if ((int) $stmt->fetchColumn() === 0) {
+                return $codigo;
+            }
+        }
+
+        throw new RuntimeException(
+            'No se pudo generar un código de verificación único. Intenta emitir de nuevo.'
+        );
+    }
+
+    /**
+     * Toma un bloqueo nombrado antes de leer el último consecutivo.
+     *
+     * El bloqueo se libera al terminar la emisión (éxito o error) para que
+     * dos transacciones no lean el mismo número base al mismo tiempo.
+     */
+    private function adquirirBloqueoConsecutivo(): void
+    {
+        $stmt = $this->db->prepare('SELECT GET_LOCK(:nombre, 10)');
+        $stmt->execute([':nombre' => self::BLOQUEO_CONSECUTIVO]);
+
+        if ((int) $stmt->fetchColumn() !== 1) {
+            throw new RuntimeException(
+                'El sistema está ocupado generando otra factura. Intenta de nuevo en unos segundos.'
+            );
+        }
+    }
+
+    private function liberarBloqueoConsecutivo(): void
+    {
+        try {
+            $stmt = $this->db->prepare('SELECT RELEASE_LOCK(:nombre)');
+            $stmt->execute([':nombre' => self::BLOQUEO_CONSECUTIVO]);
+        } catch (Throwable $e) {
+            // Si la conexión se cierra, MySQL libera el bloqueo automáticamente.
+        }
     }
 
     private function dec($valor): string

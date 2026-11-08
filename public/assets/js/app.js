@@ -35,7 +35,9 @@
     });
 
     window.setTimeout(function () {
-        document.querySelectorAll('.alert').forEach(function (alerta) {
+        // Solo los avisos flash desaparecen; los avisos permanentes (por
+        // ejemplo, la tasa BCV desactualizada) deben seguir visibles.
+        document.querySelectorAll('.alerts .alert').forEach(function (alerta) {
             alerta.classList.add('oculto');
         });
     }, 6000);

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+
+<defs>
+  <marker id="arrow-include" viewBox="0 0 10 10" refX="9" refY="5"
+          markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#7C3AED"/>
+  </marker>
+  <marker id="arrow-extend" viewBox="0 0 10 10" refX="9" refY="5"
+          markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#EA580C"/>
+  </marker>
+</defs>
+<rect x="0" y="0" width="1400" height="900" fill="#FFFFFF"/>
+<text x="700.0" y="36" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#1E293B" font-weight="bold" text-anchor="middle" >Proceso compartido: emisión de factura — ADMIN y CAJERO</text>
+<text x="700.0" y="60" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#475569" font-weight="normal" text-anchor="middle" >Casos de uso incluidos y extendidos del punto de venta (POS)</text>
+<rect x="280" y="60" width="1080" height="800" rx="18" fill="#FFFFFF" stroke="#334155" stroke-width="2"/>
+<line x1="120" y1="150" x2="700" y2="150" stroke="#94A3B8" stroke-width="1.2" opacity="0.62"/>
+<g stroke="#475569" stroke-width="2" fill="none" stroke-linecap="round"><circle cx="120" cy="104" r="11" fill="#F8FAFC"/><path d="M 120 115 L 120 155"/><path d="M 97 128 L 143 128"/><path d="M 120 155 L 100 188"/><path d="M 120 155 L 140 188"/></g><text x="120" y="212" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#475569" font-weight="bold" text-anchor="middle" >ADMIN / CAJERO</text><text x="120" y="230" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#475569" font-weight="normal" text-anchor="middle" >Usuario autenticado</text>
+<g><ellipse cx="700" cy="150" rx="97.0" ry="26.0" fill="#E2E8F0" stroke="#64748B" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0F172A" font-weight="normal" text-anchor="middle"><tspan x="700" y="154.55">Emitir factura (POS)</tspan></text></g>
+<g><ellipse cx="430" cy="300" rx="93.15" ry="35.0" fill="#E2E8F0" stroke="#64748B" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0F172A" font-weight="normal" text-anchor="middle"><tspan x="430" y="296.05">Seleccionar cliente</tspan><tspan x="430" y="313.05">y productos</tspan></text></g>
+<g><ellipse cx="700" cy="300" rx="90.0" ry="35.0" fill="#E2E8F0" stroke="#64748B" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0F172A" font-weight="normal" text-anchor="middle"><tspan x="700" y="296.05">Calcular IVA, IGTF</tspan><tspan x="700" y="313.05">y totales</tspan></text></g>
+<g><ellipse cx="970" cy="300" rx="93.15" ry="35.0" fill="#E2E8F0" stroke="#64748B" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0F172A" font-weight="normal" text-anchor="middle"><tspan x="970" y="296.05">Validar y descontar</tspan><tspan x="970" y="313.05">stock</tspan></text></g>
+<g><ellipse cx="1000" cy="470" rx="93.15" ry="35.0" fill="#E2E8F0" stroke="#64748B" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0F172A" font-weight="normal" text-anchor="middle"><tspan x="1000" y="466.05">Generar consecutivo</tspan><tspan x="1000" y="483.05">y comprobante</tspan></text></g>
+<g><ellipse cx="1180" cy="620" rx="93.15" ry="26.0" fill="#E2E8F0" stroke="#64748B" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0F172A" font-weight="normal" text-anchor="middle"><tspan x="1180" y="624.55">Descargar PDF / PNG</tspan></text></g>
+<g><ellipse cx="780" cy="620" rx="97.0" ry="26.0" fill="#E2E8F0" stroke="#64748B" stroke-width="1.6"/><text font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#0F172A" font-weight="normal" text-anchor="middle"><tspan x="780" y="624.55">Imprimir comprobante</tspan></text></g>
+<text x="820.0" y="90" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#334155" font-weight="bold" text-anchor="middle" >Punto de venta — Emisión de factura</text>
+<line x1="657.84949132543" y1="173.41694926364997" x2="480.4369813937625" y2="271.9794547812431" stroke="#7C3AED" stroke-width="1.6" stroke-dasharray="7 5" marker-end="url(#arrow-include)"/>
+<text x="569.1432363595962" y="216.69820202244654" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#7C3AED" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="5">&lt;&lt;include&gt;&gt;</text>
+<line x1="700.0" y1="176.0" x2="700.0" y2="267.0" stroke="#7C3AED" stroke-width="1.6" stroke-dasharray="7 5" marker-end="url(#arrow-include)"/>
+<text x="700.0" y="215.5" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#7C3AED" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="5">&lt;&lt;include&gt;&gt;</text>
+<line x1="742.15050867457" y1="173.41694926364997" x2="919.5630186062375" y2="271.9794547812431" stroke="#7C3AED" stroke-width="1.6" stroke-dasharray="7 5" marker-end="url(#arrow-include)"/>
+<text x="830.8567636404038" y="216.69820202244654" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#7C3AED" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="5">&lt;&lt;include&gt;&gt;</text>
+<line x1="723.6400380666943" y1="175.21604060447385" x2="970.4193472704837" y2="438.44730375518265" stroke="#7C3AED" stroke-width="1.6" stroke-dasharray="7 5" marker-end="url(#arrow-include)"/>
+<text x="921.0634854297259" y="379.8010511250409" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#7C3AED" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="5">&lt;&lt;include&gt;&gt;</text>
+<line x1="1038.288002847249" y1="501.9066690393741" x2="1151.9518467899798" y2="596.6265389916498" stroke="#EA580C" stroke-width="1.6" stroke-dasharray="7 5" marker-end="url(#arrow-extend)"/>
+<text x="1095.1199248186144" y="543.2666040155119" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#EA580C" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="5">&lt;&lt;extend&gt;&gt;</text>
+<line x1="955.041482508984" y1="500.65353465296545" x2="813.8369401313574" y2="596.9293590013472" stroke="#EA580C" stroke-width="1.6" stroke-dasharray="7 5" marker-end="url(#arrow-extend)"/>
+<text x="884.4392113201707" y="542.7914468271563" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#EA580C" font-weight="bold" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="5">&lt;&lt;extend&gt;&gt;</text>
+<rect x="350" y="680" width="700" height="96" rx="8" fill="#FEFCE8" stroke="#CA8A04" stroke-width="1.4"/>
+<text x="362" y="702" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#854D0E" font-weight="bold" text-anchor="start" >Reglas del proceso</text>
+<text x="362" y="720" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#713F12" font-weight="normal" text-anchor="start" >El servidor recalcula precios, IVA, IGTF y totales: el navegador solo envía</text>
+<text x="362" y="738" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#713F12" font-weight="normal" text-anchor="start" >id_producto y cantidad. El stock se valida y descuenta en una transacción.</text>
+<text x="362" y="756" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#713F12" font-weight="normal" text-anchor="start" >El consecutivo fiscal y el código de verificación se generan bajo bloqueo.</text>
+</svg>

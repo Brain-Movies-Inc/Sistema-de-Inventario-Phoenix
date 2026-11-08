@@ -8,7 +8,8 @@ $usuario = current_user();
 $flash   = flashes();
 $activo  = $activo ?? '';
 $titulo  = $titulo ?? 'De Todito Reyes';
-?>
+$esAdmin = is_admin();
+?> 
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -26,28 +27,42 @@ $titulo  = $titulo ?? 'De Todito Reyes';
             <span class="brand-mark">DR</span>
             <div>
                 <strong>De Todito Reyes</strong>
-                <small>Gestión y facturación</small>
+                <small><?= $esAdmin ? 'Gestión y facturación' : 'Punto de venta' ?></small>
             </div>
         </div>
 
         <nav class="menu">
             <a class="<?= $activo === 'inicio' ? 'activo' : '' ?>" href="<?= e(url('panel')) ?>">
-                <span>▦</span> Panel
+                <span>▦</span> <?= $esAdmin ? 'Panel' : 'Mi panel' ?>
             </a>
-            <a class="<?= $activo === 'productos' ? 'activo' : '' ?>" href="<?= e(url('productos')) ?>">
-                <span>▣</span> Productos
-            </a>
+
+            <?php if ($esAdmin): ?>
+                <a class="<?= $activo === 'productos' ? 'activo' : '' ?>" href="<?= e(url('productos')) ?>">
+                    <span>▣</span> Productos
+                </a>
+            <?php endif; ?>
+
             <a class="<?= $activo === 'clientes' ? 'activo' : '' ?>" href="<?= e(url('clientes')) ?>">
                 <span>☺</span> Clientes
             </a>
+
             <a class="<?= $activo === 'facturacion' ? 'activo' : '' ?>" href="<?= e(url('facturacion')) ?>">
                 <span>▤</span> Facturación
             </a>
-            <?php if (is_admin()): ?>
+
+            <a class="<?= $activo === 'mermas' ? 'activo' : '' ?>" href="<?= e(url('mermas')) ?>">
+                <span>▼</span> Merma
+            </a>
+
+            <?php if ($esAdmin): ?>
+                <a class="<?= $activo === 'tasas' ? 'activo' : '' ?>" href="<?= e(url('tasas')) ?>">
+                    <span>Bs</span> Tasas
+                </a>
                 <a class="<?= $activo === 'usuarios' ? 'activo' : '' ?>" href="<?= e(url('usuarios')) ?>">
                     <span>⚙</span> Usuarios
                 </a>
             <?php endif; ?>
+
             <a class="menu-cta" href="<?= e(url('facturacion/nueva')) ?>">
                 <span>＋</span> Nueva venta
             </a>

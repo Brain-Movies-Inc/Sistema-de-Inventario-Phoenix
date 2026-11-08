@@ -21,12 +21,11 @@ require __DIR__ . '/../layout/header.php';
 
 <?php if (!is_admin()): ?>
     <div class="alert alert-warn">
-        <span>Modo consulta: solo un administrador puede crear, editar o eliminar clientes.</span>
+        <span>Puedes registrar clientes nuevos. Para editar o eliminar, solicita ayuda a un administrador.</span>
     </div>
 <?php endif; ?>
 
-<div class="grid-sidebar<?= is_admin() ? '' : ' grid-sidebar-single' ?>">
-    <?php if (is_admin()): ?>
+<div class="grid-sidebar">
     <section class="panel">
         <div class="panel-head">
             <div>
@@ -76,7 +75,6 @@ require __DIR__ . '/../layout/header.php';
             </div>
         </form>
     </section>
-    <?php endif; ?>
 
     <section class="panel">
         <div class="panel-head">
@@ -126,15 +124,22 @@ require __DIR__ . '/../layout/header.php';
                                 <a class="btn btn-sm btn-ghost" href="<?= e(url('clientes', ['editar' => (int) $c['id_cliente']])) ?>">
                                     Editar
                                 </a>
-                                <form method="POST" action="<?= e(url('clientes')) ?>" class="inline-form">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="accion" value="eliminar">
-                                    <input type="hidden" name="id_cliente" value="<?= (int) $c['id_cliente'] ?>">
-                                    <button type="submit" class="btn btn-sm btn-danger"
-                                            data-confirm="¿Eliminar este cliente? Esta acción no se puede deshacer.">
+                                <?php if ((int) $c['facturas'] > 0): ?>
+                                    <button type="button" class="btn btn-sm btn-danger" disabled
+                                            title="No se puede eliminar: tiene facturas asociadas.">
                                         Eliminar
                                     </button>
-                                </form>
+                                <?php else: ?>
+                                    <form method="POST" action="<?= e(url('clientes')) ?>" class="inline-form">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="accion" value="eliminar">
+                                        <input type="hidden" name="id_cliente" value="<?= (int) $c['id_cliente'] ?>">
+                                        <button type="submit" class="btn btn-sm btn-danger"
+                                                data-confirm="¿Eliminar este cliente? Esta acción no se puede deshacer.">
+                                            Eliminar
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
                             </td>
                             <?php endif; ?>
                         </tr>

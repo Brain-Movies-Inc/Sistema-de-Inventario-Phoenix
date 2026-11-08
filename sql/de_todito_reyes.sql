@@ -215,6 +215,7 @@ CREATE TABLE facturas (
   id_factura              INT           NOT NULL AUTO_INCREMENT,
   nro_factura_consecutivo VARCHAR(20)   NOT NULL,
   nro_control_fiscal      VARCHAR(25)   NOT NULL,
+  codigo_verificacion     VARCHAR(10)   NOT NULL,
   tipo_emision            ENUM('SISTEMA','CONTINGENCIA') NOT NULL DEFAULT 'SISTEMA',
   fecha_emision           DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   subtotal_exento_ves     DECIMAL(12,3) NOT NULL DEFAULT 0.000,
@@ -232,6 +233,7 @@ CREATE TABLE facturas (
   PRIMARY KEY (id_factura),
   UNIQUE KEY uq_facturas_consecutivo (nro_factura_consecutivo),
   UNIQUE KEY uq_facturas_control (nro_control_fiscal),
+  UNIQUE KEY uq_facturas_codigo (codigo_verificacion),
   KEY idx_facturas_cliente (id_cliente),
   KEY idx_facturas_usuario (id_usuario),
   KEY idx_facturas_fecha (fecha_emision),
@@ -408,6 +410,8 @@ BEGIN
 END $$
 
 -- 2) Auditoria automatica de facturas (UPDATE: anulaciones, cambios de estado)
+--    PHP define @auditoria_usuario antes de anular para registrar al usuario
+--    que ejecuto el cambio; si no esta definida, se usa el emisor original.
 DROP TRIGGER IF EXISTS trg_facturas_au $$
 CREATE TRIGGER trg_facturas_au
 AFTER UPDATE ON facturas
@@ -415,7 +419,7 @@ FOR EACH ROW
 BEGIN
   IF OLD.estado <> NEW.estado OR OLD.total_ves <> NEW.total_ves THEN
     INSERT INTO bitacora_auditoria (id_usuario, modulo, accion, detalle_json)
-    VALUES (NEW.id_usuario, 'FACTURAS', 'ACTUALIZACION',
+    VALUES (COALESCE(NULLIF(@auditoria_usuario, 0), NEW.id_usuario), 'FACTURAS', 'ACTUALIZACION',
             JSON_OBJECT('id_factura', NEW.id_factura,
                         'estado_anterior', OLD.estado,
                         'estado_nuevo', NEW.estado,
@@ -516,10 +520,11 @@ INSERT INTO detalle_compra
 
 -- Factura 000001 (total 981,20 Bs / 26,88 USD) con tasa 36,5000
 INSERT INTO facturas
-  (nro_factura_consecutivo, nro_control_fiscal, tipo_emision, fecha_emision,
+  (nro_factura_consecutivo, nro_control_fiscal, codigo_verificacion,
+   tipo_emision, fecha_emision,
    subtotal_exento_ves, base_imponible_ves, monto_iva_ves, monto_igtf_ves,
    total_ves, total_usd, tasa_bcv_aplicada, metodo_pago, estado, id_cliente, id_usuario) VALUES
-  ('000001', '00-000001', 'SISTEMA', '2026-10-30 09:15:00',
+  ('000001', '00-000001', 'XFHWQHAD', 'SISTEMA', '2026-10-30 09:15:00',
    602.250, 326.680, 52.270, 0.000,
    981.200, 26.880, 36.5000, 'PAGO_MOVIL', 'EMITIDA', 1, 2);
 

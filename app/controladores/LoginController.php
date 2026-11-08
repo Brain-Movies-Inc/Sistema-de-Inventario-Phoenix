@@ -1,47 +1,70 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../modelos/UsuarioModel.php';
+/**
+ * Acceso al sistema.
+ *
+ * El login siempre exige usuario y contraseña: si se llega con una sesión
+ * abierta, se cierra antes de mostrar el formulario.
+ */
+final class LoginController extends BaseController
+{
+    public function index(): void
+    {
+        no_cache_headers();
 
-$modelo = new UsuarioModel();
-$error  = null;
-$login  = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    csrf_verify();
-
-    $login = trim((string) ($_POST['usuario_login'] ?? ''));
-    $clave = (string) ($_POST['password'] ?? '');
-
-    try {
-        if ($login === '' || $clave === '') {
-            throw new InvalidArgumentException('Ingresa tu usuario y contraseña.');
+        // Si se llega al login con una sesión abierta, se cierra: entrar al
+        // sistema siempre exige escribir la contraseña en este punto.
+        if (!$this->esPost() && is_logged_in()) {
+            logout_user();
+            redirect(url('login', ['reiniciado' => 1]));
         }
 
-        $usuario = $modelo->autenticar($login, $clave);
+        $modelo = new UsuarioModel();
+        $login  = '';
 
-        if (!$usuario) {
-            throw new RuntimeException('Usuario o contraseña incorrectos, o el usuario está inactivo.');
+        if ($this->esPost()) {
+            csrf_verify();
+
+            $login = trim((string) ($_POST['usuario_login'] ?? ''));
+            $clave = (string) ($_POST['password'] ?? '');
+
+            try {
+                if ($login === '' || $clave === '') {
+                    throw new InvalidArgumentException('Ingresa tu usuario y contraseña.');
+                }
+
+                $usuario = $modelo->autenticar($login, $clave);
+
+                if (!$usuario) {
+                    throw new RuntimeException(
+                        'Usuario o contraseña incorrectos, o el usuario está inactivo.'
+                    );
+                }
+
+                login_user($usuario);
+                $modelo->registrarBitacora((int) $usuario['id_usuario'], 'LOGIN', [
+                    'usuario'   => $usuario['usuario_login'],
+                    'resultado' => 'OK',
+                ]);
+
+                $this->aviso('ok', 'Bienvenido, ' . $usuario['nombre_completo'] . '.');
+                $this->redirigir('panel');
+            } catch (Throwable $e) {
+                $this->aviso('error', error_usuario($e, 'iniciar sesión'));
+
+                $modelo->registrarBitacora(null, 'LOGIN_FALLIDO', [
+                    'usuario'   => $login,
+                    'resultado' => 'ERROR',
+                ]);
+            }
         }
 
-        login_user($usuario);
-        $modelo->registrarBitacora((int) $usuario['id_usuario'], 'LOGIN', [
-            'usuario'   => $usuario['usuario_login'],
-            'resultado' => 'OK',
-        ]);
-
-        flash('ok', 'Bienvenido, ' . $usuario['nombre_completo'] . '.');
-        redirect(url('panel'));
-    } catch (Throwable $e) {
-        $error = $e->getMessage();
-        $modelo->registrarBitacora(null, 'LOGIN_FALLIDO', [
-            'usuario'   => $login,
-            'resultado' => 'ERROR',
+        $this->render('auth/login', [
+            'titulo'     => 'Iniciar sesión',
+            'login'      => $login,
+            'cerrado'    => isset($_GET['cerrado']),
+            'reiniciado' => isset($_GET['reiniciado']),
         ]);
     }
 }
-
-$titulo    = 'Iniciar sesión';
-$subtitulo = 'Acceso al sistema';
-
-require __DIR__ . '/../vistas/auth/login.php';
