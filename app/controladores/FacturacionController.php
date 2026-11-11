@@ -6,6 +6,12 @@ declare(strict_types=1);
  */
 final class FacturacionController extends BaseController
 {
+    /**
+     * Máximo de formularios de venta abiertos simultáneamente. Cada pestaña
+     * recibe un token distinto y el token se consume al intentar emitir.
+     */
+    private const MAX_TOKENS_EMISION = 10;
+
     public function index(): void
     {
         $this->exigirLogin();
@@ -60,7 +66,7 @@ final class FacturacionController extends BaseController
      */
     public function exportar(): void
     {
-        $this->exigirLogin();
+        $this->exigirAdmin();
 
         $tipo = (string) ($_GET['tipo'] ?? 'resumen');
 
@@ -164,6 +170,7 @@ final class FacturacionController extends BaseController
             'clientes'           => $modelo->clientes(),
             'productos'          => $modelo->productosVendibles(),
             'posOld'             => $posOld,
+            'tokenEmision'       => $this->generarTokenEmision(),
         ]);
     }
 
@@ -400,6 +407,58 @@ final class FacturacionController extends BaseController
         return $timestamp !== false ? date('d/m/Y H:i', $timestamp) : (string) $fecha;
     }
 
+    /**
+     * Crea un token de idempotencia para el formulario de venta.
+     *
+     * Se guardan varios tokens para permitir varias pestañas abiertas; cada
+     * token se consume una sola vez al procesar el POST de emisión.
+     */
+    private function generarTokenEmision(): string
+    {
+        $token  = bin2hex(random_bytes(16));
+        $tokens = $_SESSION['pos_tokens'] ?? [];
+
+        if (!is_array($tokens)) {
+            $tokens = [];
+        }
+
+        $tokens[$token] = time();
+
+        if (count($tokens) > self::MAX_TOKENS_EMISION) {
+            $tokens = array_slice($tokens, -self::MAX_TOKENS_EMISION, null, true);
+        }
+
+        $_SESSION['pos_tokens'] = $tokens;
+
+        return $token;
+    }
+
+    /**
+     * Valida y consume el token de idempotencia del POST de emisión.
+     *
+     * Un token ausente, repetido o de otra sesión se rechaza antes de tocar
+     * la base de datos, evitando que un doble clic o un reenvío del navegador
+     * emita dos facturas por la misma venta.
+     */
+    private function consumirTokenEmision(): void
+    {
+        $token  = $_POST['token_emision'] ?? '';
+        $tokens = $_SESSION['pos_tokens'] ?? [];
+
+        if (!is_string($token)
+            || $token === ''
+            || !is_array($tokens)
+            || !isset($tokens[$token])
+        ) {
+            throw new InvalidArgumentException(
+                'La solicitud de emisión ya fue procesada o expiró. Revisa el carrito e intenta de nuevo.'
+            );
+        }
+
+        unset($tokens[$token]);
+        $_SESSION['pos_tokens'] = $tokens;
+    }
+
     private function procesarPost(FacturaModel $modelo): void
     {
         csrf_verify();
@@ -413,6 +472,8 @@ final class FacturacionController extends BaseController
 
         try {
             if ($accion === 'emitir') {
+                $this->consumirTokenEmision();
+
                 $items = json_decode((string) ($_POST['items'] ?? '[]'), true);
 
                 if (!is_array($items)) {
@@ -470,11 +531,17 @@ final class FacturacionController extends BaseController
 
             throw new InvalidArgumentException('La acción solicitada no es válida.');
         } catch (Throwable $e) {
-            $contexto = match ($accion) {
-                'emitir'   => 'emitir la factura',
-                'eliminar' => 'eliminar la factura',
-                default    => 'anular la factura',
-            };
+            switch ($accion) {
+                case 'emitir':
+                    $contexto = 'emitir la factura';
+                    break;
+                case 'eliminar':
+                    $contexto = 'eliminar la factura';
+                    break;
+                default:
+                    $contexto = 'anular la factura';
+                    break;
+            }
 
             $this->aviso('error', error_usuario($e, $contexto));
 

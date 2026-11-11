@@ -128,6 +128,8 @@ El archivo `sql/de_todito_reyes.sql` crea la base `de_todito_reyes`, las 12 tabl
 6. Pulsa **Continuar** y espera el mensaje de éxito.
 7. En la lista de la izquierda debe aparecer la base `de_todito_reyes` con 12 tablas y 4 vistas.
 
+![Figura 1. Pestaña «Importar» de phpMyAdmin. Selecciona el archivo SQL, verifica el juego de caracteres utf-8 y pulsa «Continuar».](capturas/17_phpmyadmin_importar.png)
+
 #### Opción B — consola
 
 ```bat
@@ -141,6 +143,8 @@ C:\xampp\mysql\bin\mysql.exe -u root -e "USE de_todito_reyes; SHOW TABLES;"
 ```
 
 Deben aparecer, entre otras: `usuarios`, `clientes`, `productos`, `facturas`, `detalle_factura`, `tasas_cambio_bcv`, `merma_ajustes` y `bitacora_auditoria`.
+
+![Figura 2. Estructura de la base de datos en phpMyAdmin. La captura muestra las 12 tablas base creadas por el script.](capturas/18_phpmyadmin_tablas.png)
 
 #### Si la base ya existía
 
@@ -346,6 +350,8 @@ http://localhost/revisionSistema/tools/crear_admin.php
 | `admin` | `admin123` | ADMIN |
 | `mcajera` | `cajera123` | CAJERO |
 
+![Figura 3. Formulario de inicio de sesión. Es la primera pantalla que debe aparecer después de publicar el sistema.](capturas/00_login.png)
+
 ### 6.2 Cambiar las credenciales antes de operar
 
 1. Entra como `admin`.
@@ -354,6 +360,8 @@ http://localhost/revisionSistema/tools/crear_admin.php
 4. Cambia o desactiva la cuenta `mcajera` de demostración.
 5. Crea una cuenta nominal para cada cajero (no compartas usuarios).
 6. Si no vas a usar las cuentas demo, desactívalas.
+
+![Figura 4. Módulo Usuarios. Desde aquí se cambian las contraseñas demo, se crean las cuentas nominales de cada cajero y se desactivan las cuentas que no se usarán.](capturas/09_usuarios_admin.png)
 
 El sistema exige contraseñas de al menos 8 caracteres para los ADMIN creados por consola. Para el resto, aplica una política interna más estricta (12+ caracteres, sin reutilización).
 
@@ -377,6 +385,10 @@ El sistema exige contraseñas de al menos 8 caracteres para los ADMIN creados po
 | 14 | Abrir `tools/crear_admin.php` por HTTP | 403 |
 
 Si alguna prueba falla, revisa la sección 11.
+
+![Figura 5. Panel principal del ADMIN después de una instalación correcta. Debe mostrar las tarjetas de inventario, ventas, tasa BCV y últimas facturas.](capturas/01_panel_admin.png)
+
+![Figura 6. Panel del CAJERO. Sirve para comprobar que el rol reducido no muestra Productos, Tasas ni Usuarios en el menú.](capturas/10_panel_cajero.png)
 
 ---
 
@@ -572,6 +584,8 @@ session.use_strict_mode = 1
 ### 10.1 Tasa BCV
 
 La tasa **no se descarga automáticamente**. Un ADMIN debe consultar el valor oficial en `https://www.bcv.org.ve/` y registrarlo en **Tasas** con su fecha de vigencia. Si la tasa es de un día anterior, el sistema muestra un aviso en el panel, el POS y el historial.
+
+![Figura 7. Módulo Tasas BCV. Registra la tasa del día con su fecha de vigencia antes de emitir facturas.](capturas/07_tasas_admin.png)
 
 Cada factura guarda la tasa aplicada. Corregir una tasa histórica no cambia las facturas ya emitidas.
 

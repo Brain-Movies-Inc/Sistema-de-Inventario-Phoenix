@@ -347,7 +347,8 @@ JOIN categorias c ON c.id_categoria = p.id_categoria
 WHERE p.activo = 1
   AND p.stock_actual <= p.stock_minimo;
 
--- Libro de ventas (formato SENIAT)
+-- Libro de ventas (formato SENIAT). Solo facturas vigentes: las anuladas
+-- no forman parte del libro fiscal y se consultan en el historial.
 CREATE OR REPLACE VIEW v_libro_ventas AS
 SELECT  f.id_factura,
         f.nro_factura_consecutivo,
@@ -368,7 +369,8 @@ SELECT  f.id_factura,
         f.tasa_bcv_aplicada
 FROM facturas f
 JOIN clientes cl ON cl.id_cliente = f.id_cliente
-JOIN usuarios u  ON u.id_usuario  = f.id_usuario;
+JOIN usuarios u  ON u.id_usuario  = f.id_usuario
+WHERE f.estado = 'EMITIDA';
 
 -- Kardex resumido: entradas (compras), salidas (ventas) y mermas por producto
 CREATE OR REPLACE VIEW v_movimientos_producto AS
@@ -381,8 +383,10 @@ SELECT  p.id_producto,
 FROM productos p
 LEFT JOIN (SELECT id_producto, SUM(cantidad_recibida) AS total_comprado
              FROM detalle_compra GROUP BY id_producto) ec ON ec.id_producto = p.id_producto
-LEFT JOIN (SELECT id_producto, SUM(cantidad_o_peso) AS total_vendido
-             FROM detalle_factura GROUP BY id_producto) vt ON vt.id_producto = p.id_producto
+LEFT JOIN (SELECT d.id_producto, SUM(d.cantidad_o_peso) AS total_vendido
+             FROM detalle_factura d
+             JOIN facturas f ON f.id_factura = d.id_factura AND f.estado = 'EMITIDA'
+             GROUP BY d.id_producto) vt ON vt.id_producto = p.id_producto
 LEFT JOIN (SELECT id_producto, SUM(cantidad_baja) AS total_merma
              FROM merma_ajustes GROUP BY id_producto) me ON me.id_producto = p.id_producto;
 
@@ -518,7 +522,7 @@ INSERT INTO detalle_compra
   (1, 3,  20.000, 2.200,  44.000, 'L-2026-12', '2027-03-31'),
   (1, 4,  16.000, 0.950,  15.200, 'L-2026-13', '2027-02-28');
 
--- Factura 000001 (total 981,20 Bs / 26,88 USD) con tasa 36,5000
+-- Factura 000001 (total 981,20 Bs / 26,882 USD) con tasa 36,5000
 INSERT INTO facturas
   (nro_factura_consecutivo, nro_control_fiscal, codigo_verificacion,
    tipo_emision, fecha_emision,
@@ -526,7 +530,7 @@ INSERT INTO facturas
    total_ves, total_usd, tasa_bcv_aplicada, metodo_pago, estado, id_cliente, id_usuario) VALUES
   ('000001', '00-000001', 'XFHWQHAD', 'SISTEMA', '2026-10-30 09:15:00',
    602.250, 326.680, 52.270, 0.000,
-   981.200, 26.880, 36.5000, 'PAGO_MOVIL', 'EMITIDA', 1, 2);
+   981.200, 26.882, 36.5000, 'PAGO_MOVIL', 'EMITIDA', 1, 2);
 
 INSERT INTO detalle_factura
   (id_factura, id_producto, cantidad_o_peso, precio_unitario_usd, precio_unitario_ves,

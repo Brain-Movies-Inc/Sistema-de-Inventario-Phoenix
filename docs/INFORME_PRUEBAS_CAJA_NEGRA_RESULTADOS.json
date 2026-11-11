@@ -1,0 +1,953 @@
+{
+    "fecha": "2026-11-11 20:45:41",
+    "base": "de_todito_reyes_test",
+    "url": "http:\/\/localhost\/php\/sistema\/public",
+    "total": 131,
+    "pass": 131,
+    "fail": 0,
+    "porFase": {
+        "Fase 1 — Entorno, autenticación y seguridad": {
+            "total": 17,
+            "pass": 17
+        },
+        "Fase 2 — CRUD de productos, clientes, usuarios y tasas": {
+            "total": 46,
+            "pass": 46
+        },
+        "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación": {
+            "total": 35,
+            "pass": 35
+        },
+        "Fase 4 — Permisos y acciones del CAJERO": {
+            "total": 22,
+            "pass": 22
+        },
+        "Fase 5 — Merma": {
+            "total": 7,
+            "pass": 7
+        },
+        "Fase 6 — Integridad, triggers y concurrencia": {
+            "total": 4,
+            "pass": 4
+        }
+    },
+    "casos": [
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A1",
+            "desc": "GET \/ anónimo devuelve login 200",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A2",
+            "desc": "\/panel anónimo redirige a \/login",
+            "status": "PASS",
+            "detail": "HTTP 302 -> \/php\/sistema\/public\/login"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A3",
+            "desc": "Login con clave incorrecta rechazado sin abrir sesión",
+            "status": "PASS",
+            "detail": "login HTTP 200, panel HTTP 302"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A4",
+            "desc": "Login con SQLi rechazado",
+            "status": "PASS",
+            "detail": "panel HTTP 302"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A5",
+            "desc": "POST de login sin CSRF se rechaza (419\/500 Apache)",
+            "status": "PASS",
+            "detail": "HTTP 500"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A6",
+            "desc": "Login ADMIN correcto redirige a \/panel",
+            "status": "PASS",
+            "detail": "HTTP 302 -> \/php\/sistema\/public\/panel"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A7",
+            "desc": "Panel ADMIN carga",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A8",
+            "desc": "Cabeceras CSP, X-Frame-Options, nosniff y Referrer-Policy",
+            "status": "PASS",
+            "detail": "CSP\/Frame\/nosniff\/Referrer"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A9",
+            "desc": "Páginas ADMIN responden 200 sin errores PHP",
+            "status": "PASS",
+            "detail": "8\/8"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A10",
+            "desc": "Cookie de sesión con HttpOnly y SameSite=Lax",
+            "status": "PASS",
+            "detail": "Set-Cookie"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A11",
+            "desc": "GET \/logout no cierra la sesión",
+            "status": "PASS",
+            "detail": "logout HTTP 302, panel HTTP 200"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A12",
+            "desc": "POST \/logout sin CSRF se rechaza y mantiene sesión",
+            "status": "PASS",
+            "detail": "HTTP 500"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A13",
+            "desc": "POST \/logout con CSRF cierra la sesión",
+            "status": "PASS",
+            "detail": "logout HTTP 302, panel HTTP 302"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A14",
+            "desc": "Ruta inexistente devuelve 404 controlado",
+            "status": "PASS",
+            "detail": "HTTP 404"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A15",
+            "desc": "CSS local servido sin CDN",
+            "status": "PASS",
+            "detail": "HTTP 200, 23842 bytes"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A16",
+            "desc": "Login sin recursos externos",
+            "status": "PASS",
+            "detail": "externos=0"
+        },
+        {
+            "phase": "Fase 1 — Entorno, autenticación y seguridad",
+            "id": "A17",
+            "desc": "Menú ADMIN incluye Merma, Tasas, Usuarios y Cierre",
+            "status": "PASS",
+            "detail": "menú"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P1",
+            "desc": "Crear producto",
+            "status": "PASS",
+            "detail": "HTTP 302"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P2",
+            "desc": "Rechazar código duplicado",
+            "status": "PASS",
+            "detail": "duplicado"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P3",
+            "desc": "Editar producto",
+            "status": "PASS",
+            "detail": "precio=3.500"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P4",
+            "desc": "Rechazar precio negativo",
+            "status": "PASS",
+            "detail": "precio=3.500"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P5",
+            "desc": "Rechazar IVA mayor a 100",
+            "status": "PASS",
+            "detail": "IVA=150"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P6",
+            "desc": "Rechazar producto sin categoría",
+            "status": "PASS",
+            "detail": "categoría=0"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P7",
+            "desc": "Bloquear eliminación de producto con ventas\/mermas",
+            "status": "PASS",
+            "detail": "producto 1"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P8",
+            "desc": "Eliminar producto sin referencias",
+            "status": "PASS",
+            "detail": "id=11"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P9",
+            "desc": "POST de productos sin CSRF se rechaza",
+            "status": "PASS",
+            "detail": "HTTP 500"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P10",
+            "desc": "Crear producto temporal para ventas y merma",
+            "status": "PASS",
+            "detail": "id=12"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P11",
+            "desc": "Listado ADMIN muestra columna de costo",
+            "status": "PASS",
+            "detail": "columna Costo"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P12",
+            "desc": "Desactivar y reactivar producto",
+            "status": "PASS",
+            "detail": "inactivo=0, activo=1"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P13",
+            "desc": "Rechazar producto sin código",
+            "status": "PASS",
+            "detail": "código vacío"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P14",
+            "desc": "Rechazar stock negativo",
+            "status": "PASS",
+            "detail": "stock=-1"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "P15",
+            "desc": "Crear producto para prueba de concurrencia",
+            "status": "PASS",
+            "detail": "id=13"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "C1",
+            "desc": "Crear cliente",
+            "status": "PASS",
+            "detail": "id=4"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "C2",
+            "desc": "Escapar XSS en el listado de clientes",
+            "status": "PASS",
+            "detail": "escapado"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "C3",
+            "desc": "Editar cliente y verlo en el listado",
+            "status": "PASS",
+            "detail": "nombre editado"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "C4",
+            "desc": "Rechazar RIF duplicado",
+            "status": "PASS",
+            "detail": "duplicado"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "C5",
+            "desc": "Rechazar RIF con formato inválido",
+            "status": "PASS",
+            "detail": "12345"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "C6",
+            "desc": "Bloquear eliminación de cliente con facturas",
+            "status": "PASS",
+            "detail": "cliente 1"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "C7",
+            "desc": "Eliminar cliente sin facturas",
+            "status": "PASS",
+            "detail": "id=6"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "C8",
+            "desc": "POST de clientes sin CSRF se rechaza",
+            "status": "PASS",
+            "detail": "HTTP 500"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "C9",
+            "desc": "Rechazar cliente sin nombre",
+            "status": "PASS",
+            "detail": "nombre vacío"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "C10",
+            "desc": "Crear cliente con nombre tipo fórmula",
+            "status": "PASS",
+            "detail": "id=7"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "U1",
+            "desc": "Crear usuario CAJERO",
+            "status": "PASS",
+            "detail": "id=3"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "U2",
+            "desc": "Rechazar login duplicado",
+            "status": "PASS",
+            "detail": "duplicado"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "U3",
+            "desc": "Editar usuario sin cambiar clave",
+            "status": "PASS",
+            "detail": "nombre editado"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "U4",
+            "desc": "Desactivar y reactivar usuario",
+            "status": "PASS",
+            "detail": "baja=0, alta=1"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "U5",
+            "desc": "Bloquear autoeliminación del ADMIN",
+            "status": "PASS",
+            "detail": "admin id=1"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "U6",
+            "desc": "Bloquear autodesactivación del ADMIN",
+            "status": "PASS",
+            "detail": "admin id=1"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "U7",
+            "desc": "Exigir al menos un ADMIN activo",
+            "status": "PASS",
+            "detail": "regla último ADMIN"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "U8",
+            "desc": "Rechazar contraseña menor a 6 caracteres",
+            "status": "PASS",
+            "detail": "clave=123"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "U9",
+            "desc": "Rechazar cédula inválida",
+            "status": "PASS",
+            "detail": "cedula=123"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "U10",
+            "desc": "Rechazar formato de usuario inválido",
+            "status": "PASS",
+            "detail": "usuario inválido"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "T1",
+            "desc": "Registrar tasa BCV histórica",
+            "status": "PASS",
+            "detail": "id=3"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "T2",
+            "desc": "Rechazar tasa con fecha duplicada",
+            "status": "PASS",
+            "detail": "duplicada"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "T3",
+            "desc": "Rechazar tasa con fecha futura",
+            "status": "PASS",
+            "detail": "2030"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "T4",
+            "desc": "Editar tasa BCV",
+            "status": "PASS",
+            "detail": "valor=55.5"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "T5",
+            "desc": "Rechazar tasa cero o negativa",
+            "status": "PASS",
+            "detail": "tasa=0"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "T6",
+            "desc": "Rechazar fecha de tasa inválida",
+            "status": "PASS",
+            "detail": "fecha inválida"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "T7",
+            "desc": "ADMIN ve formulario de tasa",
+            "status": "PASS",
+            "detail": "formulario"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "X1",
+            "desc": "Búsqueda XSS en clientes se escapa",
+            "status": "PASS",
+            "detail": "escapado"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "X2",
+            "desc": "Búsqueda SQLi en productos no genera error",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "X3",
+            "desc": "Búsqueda XSS en facturación se escapa",
+            "status": "PASS",
+            "detail": "escapado"
+        },
+        {
+            "phase": "Fase 2 — CRUD de productos, clientes, usuarios y tasas",
+            "id": "X4",
+            "desc": "Búsqueda SQLi en clientes no genera error",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F1",
+            "desc": "Emitir factura y descontar stock",
+            "status": "PASS",
+            "detail": "HTTP 302 -> \/php\/sistema\/public\/facturacion\/ver\/2"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F2",
+            "desc": "Totales correctos sin IGTF",
+            "status": "PASS",
+            "detail": "base=365.000, IVA=58.400, total=423.400, USD=11.600"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F3",
+            "desc": "Código de verificación de 8 caracteres y único",
+            "status": "PASS",
+            "detail": "código=MU34KWPR"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F4",
+            "desc": "Stock del producto 10 → 8",
+            "status": "PASS",
+            "detail": "stock=8"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F5",
+            "desc": "Comprobante muestra número, código y total",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F6",
+            "desc": "Búsqueda por código de verificación encuentra la factura",
+            "status": "PASS",
+            "detail": "código=MU34KWPR"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F7",
+            "desc": "PDF válido y descargado como adjunto",
+            "status": "PASS",
+            "detail": "HTTP 200, 3517 bytes"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F8",
+            "desc": "PDF contiene el código y no expone URL ni rutas",
+            "status": "PASS",
+            "detail": "sin fugas"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F9",
+            "desc": "PDF con ?ver=1 se abre inline",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F10",
+            "desc": "PNG válido de 900 × 772 (sin IGTF)",
+            "status": "PASS",
+            "detail": "HTTP 200, 900x772"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F11",
+            "desc": "CSV resumen con BOM UTF-8 y datos correctos",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F12",
+            "desc": "CSV detalle con BOM UTF-8 y líneas",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F13",
+            "desc": "Emitir factura con IGTF 3 % y totales correctos",
+            "status": "PASS",
+            "detail": "base=182.500, IVA=29.200, IGTF=6.351, total=218.051, USD=5.974"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F14",
+            "desc": "Stock 8 → 7 tras la segunda venta",
+            "status": "PASS",
+            "detail": "stock=7"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F15",
+            "desc": "CSV neutraliza fórmula =2+2 anteponiendo apóstrofo",
+            "status": "PASS",
+            "detail": "fórmula neutralizada"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F16",
+            "desc": "Rechazar carrito vacío",
+            "status": "PASS",
+            "detail": "sin factura"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F17",
+            "desc": "Rechazar cliente inexistente",
+            "status": "PASS",
+            "detail": "cliente 999999"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F18",
+            "desc": "Rechazar producto inexistente",
+            "status": "PASS",
+            "detail": "producto 999999"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F19",
+            "desc": "Rechazar stock insuficiente",
+            "status": "PASS",
+            "detail": "cantidad=999"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F20",
+            "desc": "Rechazar método de pago inválido",
+            "status": "PASS",
+            "detail": "BITCOIN"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F21",
+            "desc": "CSRF ausente en emisión se rechaza",
+            "status": "PASS",
+            "detail": "HTTP 500"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F22",
+            "desc": "Rechazar emisión sin token de idempotencia",
+            "status": "PASS",
+            "detail": "sin token"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F23",
+            "desc": "Token de emisión es de un solo uso (doble envío)",
+            "status": "PASS",
+            "detail": "facturas=4"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F24",
+            "desc": "No se puede eliminar una factura EMITIDA",
+            "status": "PASS",
+            "detail": "factura 000002"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F25",
+            "desc": "Anular factura devuelve stock",
+            "status": "PASS",
+            "detail": "stock 6 -> 8"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F26",
+            "desc": "Comprobante queda marcado ANULADA",
+            "status": "PASS",
+            "detail": "estado ANULADA"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F27",
+            "desc": "Reanulación rechazada sin doble devolución de stock",
+            "status": "PASS",
+            "detail": "stock=8"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F28",
+            "desc": "Eliminar factura ANULADA borra también sus líneas",
+            "status": "PASS",
+            "detail": "líneas 1 -> 0"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F29",
+            "desc": "Consecutivo no reutiliza el número de la última anulada eliminada",
+            "status": "PASS",
+            "detail": "nueva=000005, máximo previo=4"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F30",
+            "desc": "Vistas fiscales excluyen facturas anuladas",
+            "status": "PASS",
+            "detail": "libro=0, vendido=2\/2, stock=8"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F31",
+            "desc": "Factura demo 000001 sin descuadre de total USD",
+            "status": "PASS",
+            "detail": "total_usd=26.882"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F32",
+            "desc": "PDF protegido exige sesión",
+            "status": "PASS",
+            "detail": "HTTP 302"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F33",
+            "desc": "Comprobante inexistente redirige con aviso",
+            "status": "PASS",
+            "detail": "HTTP 302"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F34",
+            "desc": "Cierre con fecha inválida redirige con aviso",
+            "status": "PASS",
+            "detail": "HTTP 302"
+        },
+        {
+            "phase": "Fase 3 — Facturación, comprobantes, PDF, PNG, CSV y anulación",
+            "id": "F35",
+            "desc": "Cierre del 30\/10 resume la factura demo 000001",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M1",
+            "desc": "Login de CAJERO correcto",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M2",
+            "desc": "Menú CAJERO incluye Productos y excluye Usuarios, Tasas y Merma",
+            "status": "PASS",
+            "detail": "menú restringido"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M3",
+            "desc": "CAJERO consulta productos en modo solo lectura",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M4",
+            "desc": "CAJERO bloqueado en \/usuarios",
+            "status": "PASS",
+            "detail": "HTTP 302"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M5",
+            "desc": "CAJERO bloqueado en \/mermas",
+            "status": "PASS",
+            "detail": "HTTP 302"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M6",
+            "desc": "CAJERO consulta tasas sin formulario de guardado",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M7",
+            "desc": "CAJERO no puede registrar tasa",
+            "status": "PASS",
+            "detail": "tasa bloqueada"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M8",
+            "desc": "CAJERO no puede registrar merma",
+            "status": "PASS",
+            "detail": "merma bloqueada"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M9",
+            "desc": "CAJERO puede crear cliente",
+            "status": "PASS",
+            "detail": "id=8"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M10",
+            "desc": "CAJERO no puede editar cliente",
+            "status": "PASS",
+            "detail": "sin cambios"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M11",
+            "desc": "CAJERO no puede eliminar cliente",
+            "status": "PASS",
+            "detail": "cliente intacto"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M12",
+            "desc": "CAJERO no puede descargar CSV",
+            "status": "PASS",
+            "detail": "HTTP 302"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M13",
+            "desc": "CAJERO puede emitir factura",
+            "status": "PASS",
+            "detail": "factura=000006"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M14",
+            "desc": "CAJERO no puede anular factura",
+            "status": "PASS",
+            "detail": "estado EMITIDA"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M15",
+            "desc": "CAJERO no puede eliminar factura",
+            "status": "PASS",
+            "detail": "factura intacta"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M16",
+            "desc": "Cierre del CAJERO solo muestra sus ventas",
+            "status": "PASS",
+            "detail": "HTTP 200, facturas=1\/3"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M17",
+            "desc": "Cierre del ADMIN muestra todas las ventas",
+            "status": "PASS",
+            "detail": "HTTP 200, facturas=3"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M18",
+            "desc": "Total del cierre coincide con la base",
+            "status": "PASS",
+            "detail": "total=635,10"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M19",
+            "desc": "Panel CAJERO omite costos y pérdidas de merma",
+            "status": "PASS",
+            "detail": "sin costos"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M20",
+            "desc": "Panel ADMIN muestra merma con pérdida y costos",
+            "status": "PASS",
+            "detail": "con costos"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M21",
+            "desc": "Menú CAJERO incluye Cierre de caja",
+            "status": "PASS",
+            "detail": "cierre visible"
+        },
+        {
+            "phase": "Fase 4 — Permisos y acciones del CAJERO",
+            "id": "M22",
+            "desc": "CAJERO puede ver su comprobante",
+            "status": "PASS",
+            "detail": "HTTP 200"
+        },
+        {
+            "phase": "Fase 5 — Merma",
+            "id": "S1",
+            "desc": "ADMIN registra merma y descuenta stock",
+            "status": "PASS",
+            "detail": "stock 7 -> 6"
+        },
+        {
+            "phase": "Fase 5 — Merma",
+            "id": "S2",
+            "desc": "Rechazar merma mayor al stock sin alterar existencias",
+            "status": "PASS",
+            "detail": "stock=6"
+        },
+        {
+            "phase": "Fase 5 — Merma",
+            "id": "S3",
+            "desc": "Rechazar motivo de merma inválido",
+            "status": "PASS",
+            "detail": "motivo inválido"
+        },
+        {
+            "phase": "Fase 5 — Merma",
+            "id": "S4",
+            "desc": "Historial ADMIN muestra costo unitario y pérdida",
+            "status": "PASS",
+            "detail": "columnas de costo"
+        },
+        {
+            "phase": "Fase 5 — Merma",
+            "id": "S5",
+            "desc": "Dashboard ADMIN refleja las mermas",
+            "status": "PASS",
+            "detail": "resumen de merma"
+        },
+        {
+            "phase": "Fase 5 — Merma",
+            "id": "S6",
+            "desc": "Rechazar merma con cantidad cero",
+            "status": "PASS",
+            "detail": "cantidad=0"
+        },
+        {
+            "phase": "Fase 5 — Merma",
+            "id": "S7",
+            "desc": "Rechazar merma de producto inexistente",
+            "status": "PASS",
+            "detail": "producto 999999"
+        },
+        {
+            "phase": "Fase 6 — Integridad, triggers y concurrencia",
+            "id": "H1",
+            "desc": "Trigger impide stock negativo por SQL directo",
+            "status": "PASS",
+            "detail": "stock=6"
+        },
+        {
+            "phase": "Fase 6 — Integridad, triggers y concurrencia",
+            "id": "H2",
+            "desc": "Trigger impide merma mayor al stock por SQL directo",
+            "status": "PASS",
+            "detail": "merma bloqueada"
+        },
+        {
+            "phase": "Fase 6 — Integridad, triggers y concurrencia",
+            "id": "H3",
+            "desc": "Trigger de auditoría registra la emisión por SQL directo",
+            "status": "PASS",
+            "detail": "bitácora EMISION"
+        },
+        {
+            "phase": "Fase 6 — Integridad, triggers y concurrencia",
+            "id": "H4",
+            "desc": "Concurrencia: 4 cajas emiten con consecutivos únicos",
+            "status": "PASS",
+            "detail": "HTTP=302,302,302,302 nros=000010,000009,000008,000007 stock=96"
+        }
+    ]
+}

@@ -225,7 +225,7 @@ require __DIR__ . '/../layout/header.php';
                         <tr>
                             <th>Producto</th>
                             <th>Categoría</th>
-                            <th class="num">Costo</th>
+                            <?php if (is_admin()): ?><th class="num">Costo</th><?php endif; ?>
                             <th class="num">Venta</th>
                             <th class="num">IVA</th>
                             <th class="num">Stock</th>
@@ -246,10 +246,12 @@ require __DIR__ . '/../layout/header.php';
                                 <small class="muted"><?= e($p['codigo_qr_barras']) ?></small>
                             </td>
                             <td><?= e($p['nombre_categoria']) ?></td>
+                            <?php if (is_admin()): ?>
                             <td class="num">
                                 $ <?= money($p['costo_usd']) ?>
                                 <small class="muted"><?= e($enBs($p['costo_usd'])) ?></small>
                             </td>
+                            <?php endif; ?>
                             <td class="num">
                                 $ <?= money($p['precio_venta_usd']) ?>
                                 <small class="muted"><?= e($enBs($p['precio_venta_usd'])) ?></small>

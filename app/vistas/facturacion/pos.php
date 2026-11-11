@@ -150,6 +150,7 @@ require __DIR__ . '/../layout/header.php';
         <form method="POST" action="<?= e(url('facturacion')) ?>" class="pos-form" data-form-venta>
             <?= csrf_field() ?>
             <input type="hidden" name="accion" value="emitir">
+            <input type="hidden" name="token_emision" value="<?= e($tokenEmision ?? '') ?>">
             <input type="hidden" name="items" value="[]" data-items>
 
             <label class="field">

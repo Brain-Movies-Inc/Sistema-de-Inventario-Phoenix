@@ -23,24 +23,22 @@ $esAdmin = is_admin();
 
 <div class="app">
     <aside class="sidebar" data-sidebar>
-        <div class="brand">
+        <a class="brand" href="<?= e(url('panel')) ?>">
             <span class="brand-mark">DR</span>
             <div>
                 <strong>De Todito Reyes</strong>
                 <small><?= $esAdmin ? 'Gestión y facturación' : 'Punto de venta' ?></small>
             </div>
-        </div>
+        </a>
 
         <nav class="menu">
             <a class="<?= $activo === 'inicio' ? 'activo' : '' ?>" href="<?= e(url('panel')) ?>">
                 <span>▦</span> <?= $esAdmin ? 'Panel' : 'Mi panel' ?>
             </a>
 
-            <?php if ($esAdmin): ?>
-                <a class="<?= $activo === 'productos' ? 'activo' : '' ?>" href="<?= e(url('productos')) ?>">
-                    <span>▣</span> Productos
-                </a>
-            <?php endif; ?>
+            <a class="<?= $activo === 'productos' ? 'activo' : '' ?>" href="<?= e(url('productos')) ?>">
+                <span>▣</span> Productos
+            </a>
 
             <a class="<?= $activo === 'clientes' ? 'activo' : '' ?>" href="<?= e(url('clientes')) ?>">
                 <span>☺</span> Clientes
@@ -50,11 +48,14 @@ $esAdmin = is_admin();
                 <span>▤</span> Facturación
             </a>
 
-            <a class="<?= $activo === 'mermas' ? 'activo' : '' ?>" href="<?= e(url('mermas')) ?>">
-                <span>▼</span> Merma
+            <a class="<?= $activo === 'cierre' ? 'activo' : '' ?>" href="<?= e(url('cierre')) ?>">
+                <span>∑</span> Cierre de caja
             </a>
 
             <?php if ($esAdmin): ?>
+                <a class="<?= $activo === 'mermas' ? 'activo' : '' ?>" href="<?= e(url('mermas')) ?>">
+                    <span>▼</span> Merma
+                </a>
                 <a class="<?= $activo === 'tasas' ? 'activo' : '' ?>" href="<?= e(url('tasas')) ?>">
                     <span>Bs</span> Tasas
                 </a>

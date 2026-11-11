@@ -4,14 +4,14 @@ declare(strict_types=1);
 /**
  * Registro y consulta de mermas.
  *
- * Tanto el ADMIN como el CAJERO pueden reportar una merma: es una salida de
- * inventario que debe quedar documentada con motivo y observación.
+ * Solo el ADMIN puede reportar mermas: es un ajuste de inventario que afecta
+ * el valor del negocio y debe quedar bajo control gerencial.
  */
 final class MermasController extends BaseController
 {
     public function index(): void
     {
-        $this->exigirLogin();
+        $this->exigirAdmin();
 
         $modelo = new MermaModel();
 

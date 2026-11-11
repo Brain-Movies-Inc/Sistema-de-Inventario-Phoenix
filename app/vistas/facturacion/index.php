@@ -70,8 +70,11 @@ require __DIR__ . '/../layout/header.php';
             <p class="panel-sub"><?= count($facturas) ?> factura(s) encontrada(s)</p>
         </div>
         <div class="acciones">
-            <a class="btn btn-ghost" href="<?= e($urlResumen) ?>">↓ Resumen CSV</a>
-            <a class="btn btn-ghost" href="<?= e($urlDetalle) ?>">↓ Detalle CSV</a>
+            <a class="btn btn-ghost" href="<?= e(url('cierre')) ?>">Cierre de caja</a>
+            <?php if (is_admin()): ?>
+                <a class="btn btn-ghost" href="<?= e($urlResumen) ?>">↓ Resumen CSV</a>
+                <a class="btn btn-ghost" href="<?= e($urlDetalle) ?>">↓ Detalle CSV</a>
+            <?php endif; ?>
             <a class="btn btn-primary" href="<?= e(url('facturacion/nueva')) ?>">＋ Nueva venta</a>
         </div>
     </div>

@@ -55,6 +55,8 @@ La raíz `/` siempre muestra el inicio de sesión. El panel está en `/panel` y 
 
 Si los datos son correctos, el sistema te lleva al panel que corresponde a tu rol.
 
+![Figura 1. Pantalla de inicio de sesión. Escribe el usuario y la contraseña y pulsa «Entrar».](capturas/00_login.png)
+
 ### 3.3 Credenciales de demostración
 
 | Usuario | Contraseña | Rol |
@@ -155,6 +157,8 @@ Al entrar como ADMIN, el panel muestra:
 | Últimas facturas | Movimientos recientes con enlace al comprobante. |
 | Pérdidas por merma | Aparece si hay pérdidas acumuladas. |
 
+![Figura 2. Panel principal del ADMIN. Desde aquí se revisan ventas, inventario, stock bajo, tasa BCV y últimas facturas.](capturas/01_panel_admin.png)
+
 ### 5.2 Panel del CAJERO (“Mi panel”)
 
 El CAJERO ve solo su actividad:
@@ -168,6 +172,8 @@ El CAJERO ve solo su actividad:
 - **Tus últimas facturas:** movimientos recientes emitidos por su usuario.
 
 El panel del CAJERO **no** muestra inventario, costos, pérdidas, productos ni datos de otros usuarios.
+
+![Figura 3. Panel «Mi panel» del CAJERO. Solo muestra sus ventas del día y del mes, la tasa vigente y sus últimas facturas.](capturas/10_panel_cajero.png)
 
 ---
 
@@ -183,6 +189,8 @@ Ruta: **Clientes** (`/clientes`).
 4. Pulsa **Limpiar** para ver todos.
 
 La tabla muestra cliente, RIF/cédula, teléfono, dirección y cantidad de facturas.
+
+![Figura 4. Módulo Clientes visto por el ADMIN. Incluye los botones «Editar» y «Eliminar» en cada fila.](capturas/03_clientes_admin.png)
 
 ### 6.2 Registrar un cliente
 
@@ -204,6 +212,8 @@ Solo el ADMIN ve los botones **Editar** y **Eliminar**.
 - **Eliminar:** solo se permite si el cliente **no tiene facturas**. Si tiene, el botón aparece deshabilitado y el servidor también rechaza el borrado. En ese caso, edita los datos en lugar de borrar.
 
 El CAJERO puede consultar y crear clientes, pero no editar ni eliminar. Si lo intenta por URL o por un POST manipulado, el servidor responde con “Solo un administrador puede editar o eliminar clientes.”
+
+![Figura 5. Módulo Clientes visto por el CAJERO. Puede consultar y registrar, pero no aparecen los botones de edición ni de eliminación.](capturas/11_clientes_cajero.png)
 
 ---
 
@@ -234,6 +244,8 @@ Ruta: **Productos** (`/productos`).
 3. Pulsa **Crear producto**.
 
 Si no hay tasa BCV registrada, el sistema avisa que no puede calcular los equivalentes en Bs. Puedes guardar el producto igualmente; el cálculo en Bs se actualizará cuando exista una tasa.
+
+![Figura 6. Módulo Productos del ADMIN. Arriba está el formulario «Nuevo producto» y abajo el listado con costo, precio, IVA, stock y estado.](capturas/02_productos_admin.png)
 
 ### 7.3 Editar, activar y desactivar
 
@@ -295,7 +307,13 @@ Verifica:
    - Equivalente en USD
 8. Pulsa **Emitir factura**.
 
+![Figura 7. Punto de venta con el catálogo a la izquierda y el carrito a la derecha. El ejemplo muestra dos productos agregados y un cliente seleccionado.](capturas/05_pos.png)
+
 El servidor vuelve a leer precios, IVA, stock y tasa desde la base. El navegador solo envía el ID del producto y la cantidad. Si algo cambió (precio, stock, tasa), el servidor recalcula y, si no puede, revierte toda la operación.
+
+El CAJERO utiliza exactamente la misma pantalla de venta. La diferencia está en el menú lateral: no ve **Productos**, **Tasas** ni **Usuarios**.
+
+![Figura 8. El mismo punto de venta operado por un CAJERO. Puede agregar productos, elegir cliente, aplicar IGTF y emitir la factura.](capturas/12_pos_cajero.png)
 
 ### 8.3 Qué ocurre al emitir
 
@@ -336,6 +354,8 @@ Ruta: `/facturacion/ver/ID`. Se llega desde el historial, el panel o el aviso de
 - Totales: subtotal exento, base imponible, IVA, IGTF (si aplica), total Bs y total USD.
 - Pie: agradecimiento, tipo de emisión y login del cajero.
 
+![Figura 9. Comprobante de factura visto por el ADMIN. Además de los datos fiscales, aparecen los botones «Descargar PDF», «Descargar imagen», «Imprimir» y «Anular factura».](capturas/06_comprobante_admin.png)
+
 ### 9.2 Acciones
 
 | Botón | Qué hace | Quién lo ve |
@@ -345,6 +365,10 @@ Ruta: `/facturacion/ver/ID`. Se llega desde el historial, el panel o el aviso de
 | **Imprimir** | Abre el PDF en una pestaña nueva (`?ver=1`) para imprimir sin la URL ni la fecha que agrega Chrome. | ADMIN y CAJERO |
 | **Anular factura** | Cambia el estado a `ANULADA` y devuelve el stock. Solo si está `EMITIDA`. | Solo ADMIN |
 | **Eliminar factura** | Borra la factura y sus líneas. Solo si está `ANULADA`. | Solo ADMIN |
+
+El CAJERO ve el mismo comprobante, pero sin los botones **Anular factura** ni **Eliminar factura**. Si intenta anular por URL o por un POST manipulado, el servidor rechaza la operación.
+
+![Figura 10. El mismo comprobante visto por el CAJERO. Puede descargar PDF, descargar imagen e imprimir, pero no anular ni eliminar.](capturas/13_comprobante_cajero.png)
 
 ### 9.3 Anular una factura
 
@@ -393,6 +417,8 @@ Ruta: **Facturación** (`/facturacion`).
 
 El listado muestra hasta **100 facturas** (las más recientes). Las exportaciones CSV incluyen **todas** las que coincidan con los filtros, no solo las 100 visibles.
 
+![Figura 11. Historial de ventas del ADMIN. Las tarjetas superiores resumen el día y la tabla permite buscar, filtrar y abrir cada comprobante.](capturas/04_historial_ventas.png)
+
 ### 10.3 Exportar CSV
 
 - **Resumen CSV:** una fila por factura. Incluye factura, control, fecha, cliente, RIF/cédula, cajero, método de pago, estado, subtotal exento, base imponible, IVA, IGTF, total Bs, total USD y tasa aplicada.
@@ -407,6 +433,8 @@ Pulsa el número de factura (`#000001`) o **Ver** para abrir el comprobante.
 ### 10.5 Eliminar desde el historial
 
 El ADMIN ve el botón **Eliminar** solo en facturas `ANULADA`. Es equivalente a eliminarla desde el comprobante.
+
+![Figura 12. Historial visto por el CAJERO. Puede consultar y exportar, pero no aparece el botón «Eliminar» de facturas anuladas.](capturas/14_historial_cajero.png)
 
 ---
 
@@ -423,7 +451,13 @@ La pantalla muestra:
 - **Estado:** `Al día`, `Desactualizada` o `Sin tasa`.
 - **Historial de tasas:** vigencia, valor, observación y usuario.
 
+![Figura 13. Módulo Tasas BCV del ADMIN. Muestra la tasa vigente, su estado y el historial, además del formulario para registrar una nueva tasa.](capturas/07_tasas_admin.png)
+
 Si la tasa es de un día anterior, el panel, el POS, Facturación y Tasas muestran un aviso. El aviso no bloquea la venta, pero los totales usarán la tasa vieja hasta que se actualice.
+
+El CAJERO puede consultar la tasa y su historial, pero no ve el formulario de registro ni el botón **Corregir**.
+
+![Figura 14. Módulo Tasas BCV del CAJERO. Solo consulta: no aparecen el formulario de registro ni las acciones de corrección.](capturas/16_tasas_cajero.png)
 
 ### 11.2 Registrar una tasa (ADMIN)
 
@@ -476,12 +510,16 @@ Una merma es una salida de inventario por vencimiento, daño, pérdida, robo, aj
 
 El sistema descuenta el stock en una transacción y muestra un aviso con la cantidad y el stock restante.
 
+![Figura 15. Módulo Merma del ADMIN. El formulario «Reportar merma» permite elegir producto, cantidad y motivo; la tabla incluye costo unitario y pérdida.](capturas/08_mermas_admin.png)
+
 ### 12.2 Consultar
 
 La tabla muestra fecha, producto, cantidad, motivo, usuario que reportó y observación.
 
 - **ADMIN:** además ve **Costo unit. $** y **Pérdida $** (cantidad × costo del momento).
 - **CAJERO:** no ve costos ni pérdidas.
+
+![Figura 16. Módulo Merma del CAJERO. Puede reportar y consultar mermas, pero la tabla no muestra las columnas de costo ni de pérdida.](capturas/15_mermas_cajero.png)
 
 ### 12.3 Errores frecuentes
 
@@ -507,6 +545,8 @@ Ruta: **Usuarios** (`/usuarios`).
    - **Rol:** `CAJERO — vende y consulta` o `ADMIN — acceso total`.
    - **Contraseña:** obligatoria al crear; mínimo 6 caracteres, máximo 72.
 2. Pulsa **Crear usuario**.
+
+![Figura 17. Módulo Usuarios del ADMIN. Permite crear cuentas, editar rol y datos, restablecer contraseñas y activar o desactivar usuarios.](capturas/09_usuarios_admin.png)
 
 ### 13.2 Editar un usuario
 

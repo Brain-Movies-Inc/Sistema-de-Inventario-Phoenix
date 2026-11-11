@@ -14,10 +14,6 @@ $facturasTotal = (int) ($resumen['facturas_total'] ?? 0);
 $vendidoTotal  = (float) ($resumen['vendido_total_ves'] ?? 0);
 $ultimaVenta   = $resumen['ultima_venta'] ?? null;
 
-$mermaCantidad = (int) ($mermas['cantidad'] ?? 0);
-$mermaMes      = (int) ($mermas['cantidad_mes'] ?? 0);
-$mermaUltimas  = is_array($mermas['ultimas'] ?? null) ? $mermas['ultimas'] : [];
-
 require __DIR__ . '/../layout/header.php';
 ?>
 
@@ -75,11 +71,12 @@ require __DIR__ . '/../layout/header.php';
         <div class="acciones">
             <a class="btn btn-primary" href="<?= e(url('facturacion/nueva')) ?>">＋ Nueva venta</a>
             <a class="btn btn-ghost" href="<?= e(url('facturacion')) ?>">Historial de ventas</a>
+            <a class="btn btn-ghost" href="<?= e(url('cierre')) ?>">Cierre de caja</a>
         </div>
 
         <p class="muted small-note">
-            Desde Facturación puedes consultar las facturas, ver comprobantes y
-            descargar el resumen o el detalle en CSV.
+            Desde Facturación puedes consultar las facturas y ver comprobantes.
+            El cierre de caja resume tus ventas del día.
         </p>
     </section>
 
@@ -115,60 +112,6 @@ require __DIR__ . '/../layout/header.php';
         </div>
     </section>
 </div>
-
-<section class="panel">
-    <div class="panel-head">
-        <div>
-            <h2>Merma</h2>
-            <p class="panel-sub">Bajas de inventario reportadas</p>
-        </div>
-        <a class="btn btn-sm btn-ghost" href="<?= e(url('mermas')) ?>">Reportar / ver mermas</a>
-    </div>
-
-    <div class="merma-resumen">
-        <div>
-            <span class="stat-label">Mermas registradas</span>
-            <strong class="merma-valor"><?= $mermaCantidad ?></strong>
-        </div>
-        <div>
-            <span class="stat-label">Mermas del mes</span>
-            <strong class="merma-valor"><?= $mermaMes ?></strong>
-        </div>
-    </div>
-
-    <?php if ($mermaUltimas): ?>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Producto</th>
-                        <th class="num">Cantidad</th>
-                        <th>Motivo</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($mermaUltimas as $m): ?>
-                    <tr>
-                        <td><?= e(date('d/m/Y H:i', strtotime((string) $m['fecha_registro']))) ?></td>
-                        <td><?= e($m['nombre_producto']) ?></td>
-                        <td class="num">
-                            <?= cantidad($m['cantidad_baja']) ?> <?= e($m['unidad_medida']) ?>
-                        </td>
-                        <td><?= e(MermaModel::MOTIVOS[$m['tipo_motivo']] ?? $m['tipo_motivo']) ?></td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    <?php else: ?>
-        <div class="empty">
-            <span class="empty-icon">▼</span>
-            <p>No hay mermas registradas.</p>
-            <a class="btn btn-primary" href="<?= e(url('mermas')) ?>">Reportar la primera</a>
-        </div>
-    <?php endif; ?>
-</section>
 
 <section class="panel">
     <div class="panel-head">

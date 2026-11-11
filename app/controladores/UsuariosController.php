@@ -167,11 +167,17 @@ final class UsuariosController extends BaseController
                 throw new InvalidArgumentException('La acción solicitada no es válida.');
             }
         } catch (Throwable $e) {
-            $contexto = match ($accion) {
-                'eliminar'       => 'eliminar el usuario',
-                'cambiar_estado' => 'cambiar el estado del usuario',
-                default          => 'guardar el usuario',
-            };
+            switch ($accion) {
+                case 'eliminar':
+                    $contexto = 'eliminar el usuario';
+                    break;
+                case 'cambiar_estado':
+                    $contexto = 'cambiar el estado del usuario';
+                    break;
+                default:
+                    $contexto = 'guardar el usuario';
+                    break;
+            }
 
             $this->aviso('error', error_usuario($e, $contexto));
 

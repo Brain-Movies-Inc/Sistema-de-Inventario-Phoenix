@@ -3,12 +3,15 @@ declare(strict_types=1);
 
 /**
  * Gestión del inventario y sus precios.
+ *
+ * El ADMIN administra el catálogo. El CAJERO puede consultarlo en modo solo
+ * lectura para conocer precios y disponibilidad, sin crear ni modificar.
  */
 final class ProductosController extends BaseController
 {
     public function index(): void
     {
-        $this->exigirAdmin();
+        $this->exigirLogin();
 
         $modelo = new ProductoModel();
 

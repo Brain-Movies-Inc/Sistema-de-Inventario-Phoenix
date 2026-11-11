@@ -248,6 +248,90 @@ final class FacturaModel
     }
 
     /**
+     * Resumen del corte/cierre de caja de una fecha.
+     *
+     * Solo cuenta facturas EMITIDA: las anuladas se informan aparte para que
+     * el arqueo no las mezcle con el efectivo y los demás medios de pago.
+     *
+     * @return array{
+     *   fecha:string, cantidad:int, total_ves:float, total_usd:float,
+     *   igtf_ves:float, primera:?string, ultima:?string,
+     *   por_metodo:array<int, array<string, mixed>>,
+     *   anuladas:array{cantidad:int, total_ves:float}
+     * }
+     */
+    public function resumenCierre(?string $fecha = null, ?int $idUsuario = null): array
+    {
+        $fecha = $fecha !== null && $fecha !== '' ? $fecha : date('Y-m-d');
+
+        $where  = "f.estado = 'EMITIDA' AND DATE(f.fecha_emision) = :fecha";
+        $params = [':fecha' => $fecha];
+
+        if ($idUsuario !== null) {
+            $where .= ' AND f.id_usuario = :usuario';
+            $params[':usuario'] = $idUsuario;
+        }
+
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) AS cantidad,
+                    COALESCE(SUM(f.total_ves), 0) AS total_ves,
+                    COALESCE(SUM(f.total_usd), 0) AS total_usd,
+                    COALESCE(SUM(f.monto_igtf_ves), 0) AS igtf_ves,
+                    MIN(f.fecha_emision) AS primera,
+                    MAX(f.fecha_emision) AS ultima
+             FROM facturas f
+             WHERE {$where}"
+        );
+        $stmt->execute($params);
+        $totales = $stmt->fetch() ?: [];
+
+        $stmt = $this->db->prepare(
+            "SELECT f.metodo_pago,
+                    COUNT(*) AS cantidad,
+                    COALESCE(SUM(f.total_ves), 0) AS total_ves,
+                    COALESCE(SUM(f.total_usd), 0) AS total_usd
+             FROM facturas f
+             WHERE {$where}
+             GROUP BY f.metodo_pago
+             ORDER BY total_ves DESC, f.metodo_pago ASC"
+        );
+        $stmt->execute($params);
+        $porMetodo = $stmt->fetchAll();
+
+        $whereAnuladas  = "f.estado = 'ANULADA' AND DATE(f.fecha_emision) = :fecha";
+        $paramsAnuladas = [':fecha' => $fecha];
+
+        if ($idUsuario !== null) {
+            $whereAnuladas .= ' AND f.id_usuario = :usuario';
+            $paramsAnuladas[':usuario'] = $idUsuario;
+        }
+
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) AS cantidad,
+                    COALESCE(SUM(f.total_ves), 0) AS total_ves
+             FROM facturas f
+             WHERE {$whereAnuladas}"
+        );
+        $stmt->execute($paramsAnuladas);
+        $anuladas = $stmt->fetch() ?: [];
+
+        return [
+            'fecha'      => $fecha,
+            'cantidad'   => (int) ($totales['cantidad'] ?? 0),
+            'total_ves'  => (float) ($totales['total_ves'] ?? 0),
+            'total_usd'  => (float) ($totales['total_usd'] ?? 0),
+            'igtf_ves'   => (float) ($totales['igtf_ves'] ?? 0),
+            'primera'    => $totales['primera'] ?? null,
+            'ultima'     => $totales['ultima'] ?? null,
+            'por_metodo' => $porMetodo,
+            'anuladas'   => [
+                'cantidad'  => (int) ($anuladas['cantidad'] ?? 0),
+                'total_ves' => (float) ($anuladas['total_ves'] ?? 0),
+            ],
+        ];
+    }
+
+    /**
      * Emite una factura completa en una sola transacción.
      *
      * Los precios, el IVA y el stock SIEMPRE se leen de la base de datos;

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Genera docs/index.html a partir de los manuales en Markdown y los SVG.
+"""Genera docs/index.html a partir de los manuales en Markdown, las capturas y los SVG.
 
+Las imágenes locales se embeben como data URI para que el HTML sea portable.
 No requiere dependencias externas: usa solo la biblioteca estándar.
 Ejecutar desde la carpeta docs/:
 
@@ -114,7 +115,7 @@ class Markdown:
         def image(match: re.Match[str]) -> str:
             alt, src, title = match.group(1), match.group(2), match.group(3)
             title_attr = f' title="{title}"' if title else ""
-            return f'<img src="{src}" alt="{alt}"{title_attr}>'
+            return f'<img src="{image_uri(src)}" alt="{alt}"{title_attr}>'
 
         text = re.sub(r'!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)', image, text)
 
@@ -224,6 +225,24 @@ class Markdown:
                 paragraph.append(current.lstrip(" \t").rstrip("\t"))
                 i += 1
             text = "\n".join(paragraph)
+            single_image = re.fullmatch(
+                r'\s*!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)\s*', text
+            )
+            if single_image:
+                alt, src, title = (
+                    single_image.group(1),
+                    single_image.group(2),
+                    single_image.group(3),
+                )
+                caption = title or alt
+                title_attr = f' title="{title}"' if title else ""
+                out.append(
+                    f'<figure class="shot">'
+                    f'<img src="{image_uri(src)}" alt="{html.escape(alt, quote=True)}"{title_attr}>'
+                    f"<figcaption>{esc(caption)}</figcaption>"
+                    f"</figure>"
+                )
+                continue
             parts = re.split(r" {2,}\n", text)
             out.append("<p>" + "<br>\n".join(self.inline(part) for part in parts) + "</p>")
 
@@ -357,6 +376,30 @@ class Markdown:
 def data_uri(path: Path) -> str:
     payload = base64.b64encode(path.read_bytes()).decode("ascii")
     return f"data:image/svg+xml;base64,{payload}"
+
+
+IMAGE_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+}
+
+
+def image_uri(src: str) -> str:
+    """Convierte una imagen local en data URI para que el HTML sea portable."""
+    if src.startswith(("data:", "http://", "https://")):
+        return src
+    path = (BASE / src).resolve()
+    if not path.is_file():
+        return src
+    mime = IMAGE_TYPES.get(path.suffix.lower())
+    if not mime:
+        return src
+    payload = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:{mime};base64,{payload}"
 
 
 def toc_html(sections: list[tuple[str, str, list[tuple[int, str, str]]]]) -> str:
@@ -696,6 +739,30 @@ main {{
 }}
 .doc tbody tr:nth-child(even) {{ background: #fbfdff; }}
 .doc input[type="checkbox"] {{ margin-right: 6px; }}
+.doc figure.shot {{
+  margin: 22px 0 28px;
+  padding: 14px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  text-align: center;
+}}
+.doc figure.shot img {{
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}}
+.doc figure.shot figcaption {{
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-align: left;
+}}
 .back-top {{ margin-top: 34px; font-size: 13px; }}
 .back-top a {{ color: var(--muted); }}
 
@@ -769,6 +836,21 @@ main {{
   .doc h2 {{ font-size: 15pt; margin-top: 22pt; page-break-after: avoid; }}
   .doc h3 {{ font-size: 12pt; page-break-after: avoid; }}
   .doc pre, .doc table, .doc blockquote, .doc figure {{ page-break-inside: avoid; }}
+  .doc figure.shot {{
+    margin: 8pt 0 12pt;
+    padding: 0;
+    border: 0;
+    background: #fff;
+  }}
+  .doc figure.shot img {{
+    max-width: 100%;
+    max-height: 225mm;
+    border: 1px solid #dbe3ee;
+  }}
+  .doc figure.shot figcaption {{
+    margin-top: 5pt;
+    font-size: 8.5pt;
+  }}
   .doc pre {{
     font-size: 8.5pt;
     white-space: pre-wrap;

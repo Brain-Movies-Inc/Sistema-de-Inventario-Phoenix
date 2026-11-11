@@ -95,6 +95,8 @@ try {
         (new FacturacionController())->index();
     } elseif ($ruta === '/mermas') {
         (new MermasController())->index();
+    } elseif ($ruta === '/cierre') {
+        (new CierreController())->index();
     } elseif ($ruta === '/facturacion/nueva') {
         (new FacturacionController())->nueva();
     } elseif ($ruta === '/facturacion/exportar') {

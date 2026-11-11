@@ -23,7 +23,6 @@ final class DashboardController extends BaseController
                 'activo'             => 'inicio',
                 'resumen'            => $modelo->resumenCajero(current_user_id()),
                 'ultimasFacturas'    => $modelo->ultimasFacturasCajero(current_user_id(), 8),
-                'mermas'             => $modelo->resumenMermas(4),
                 'tasa'               => $tasa,
                 'tasaDesactualizada' => tasa_desactualizada($tasa),
             ]);
