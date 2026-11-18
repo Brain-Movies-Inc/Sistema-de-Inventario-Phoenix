@@ -25,6 +25,10 @@
     box-sizing: border-box;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 html,
 body {
     margin: 0;
@@ -804,6 +808,19 @@ input[type="checkbox"] {
     z-index: 1;
 }
 
+.pos-paginacion {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.pos-paginacion .muted {
+    font-size: 12px;
+}
+
 .carrito-vacio {
     padding: 22px 12px;
     border: 1px dashed #cbd5e1;
@@ -1041,6 +1058,75 @@ input[type="checkbox"] {
     font-size: 16px;
     font-weight: 900;
     letter-spacing: .12em;
+}
+
+/* Desglose de pagos de la factura (F-21). */
+.ticket-pagos {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+}
+
+.ticket-pagos h3 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    letter-spacing: .02em;
+}
+
+.ticket-pagos .ticket-tabla {
+    margin-top: 0;
+}
+
+.ticket-pagos td,
+.ticket-pagos th {
+    font-size: 12.5px;
+}
+
+/* Panel de pago mixto del POS (F-21). */
+.pago-mixto {
+    display: grid;
+    gap: 10px;
+    padding: 11px 12px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.pago-mixto[hidden] {
+    display: none;
+}
+
+.pago-mixto .muted {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.pago-mixto .field > span {
+    font-size: 11.5px;
+}
+
+/* Anulación con motivo obligatorio (F-16). */
+.panel-anulacion {
+    max-width: 920px;
+    margin: 18px auto 0;
+    border-color: #fecaca;
+}
+
+.form-anulacion {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 18px 18px;
+}
+
+.form-anulacion .field {
+    flex: 1 1 320px;
+}
+
+.form-anulacion .btn {
+    flex: 0 0 auto;
 }
 
 .small-note {

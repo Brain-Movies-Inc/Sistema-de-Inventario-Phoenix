@@ -36,17 +36,6 @@ require __DIR__ . '/../layout/header.php';
                 </button>
             </form>
         <?php endif; ?>
-        <?php if ($esEmitida && is_admin()): ?>
-            <form method="POST" action="<?= e(url('facturacion')) ?>" class="inline-form">
-                <?= csrf_field() ?>
-                <input type="hidden" name="accion" value="anular">
-                <input type="hidden" name="id_factura" value="<?= (int) $factura['id_factura'] ?>">
-                <button type="submit" class="btn btn-danger"
-                        data-confirm="¿Anular esta factura? Se devolverá el stock al inventario y no se podrá revertir.">
-                    Anular factura
-                </button>
-            </form>
-        <?php endif; ?>
     </div>
 </div>
 
@@ -141,13 +130,82 @@ require __DIR__ . '/../layout/header.php';
         <div class="ticket-total-usd"><span>Total USD</span><strong>$ <?= money($factura['total_usd']) ?></strong></div>
     </div>
 
+    <?php if (!empty($pagos)): ?>
+        <section class="ticket-pagos">
+            <h3>Desglose de pagos</h3>
+            <table class="ticket-tabla">
+                <thead>
+                    <tr>
+                        <th>Método</th>
+                        <th>Moneda</th>
+                        <th class="num">Monto</th>
+                        <th class="num">Equivalente Bs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($pagos as $pago): ?>
+                    <tr>
+                        <td><?= e(metodo_pago_label((string) $pago['metodo'])) ?></td>
+                        <td><?= $pago['moneda'] === 'USD' ? 'Divisa (USD)' : 'Bolívares' ?></td>
+                        <td class="num">
+                            <?= $pago['moneda'] === 'USD' ? '$ ' : 'Bs ' ?><?= money($pago['monto']) ?>
+                        </td>
+                        <td class="num">Bs <?= money($pago['monto_ves']) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </section>
+    <?php endif; ?>
+
     <footer class="ticket-foot">
         <p>Gracias por su compra. Documento generado por <?= e(EMPRESA_NOMBRE) ?>.</p>
         <?php if ($factura['estado'] === 'ANULADA'): ?>
             <p class="ticket-anulada">FACTURA ANULADA</p>
+            <?php if (!empty($factura['motivo_anulacion'])): ?>
+                <p><strong>Motivo:</strong> <?= e($factura['motivo_anulacion']) ?></p>
+            <?php endif; ?>
+            <?php if (!empty($factura['fecha_anulacion'])): ?>
+                <small>
+                    Anulada el <?= e(date('d/m/Y H:i', strtotime((string) $factura['fecha_anulacion']))) ?>
+                    <?php if (!empty($factura['anulada_por_login'])): ?>
+                        por <?= e($factura['anulada_por_login']) ?>
+                    <?php endif; ?>
+                </small>
+            <?php endif; ?>
         <?php endif; ?>
         <small>Emisión: <?= e($factura['tipo_emision']) ?> · Cajero: <?= e($factura['cajero_login']) ?></small>
     </footer>
 </article>
+
+<?php if ($esEmitida && is_admin()): ?>
+    <section class="panel no-print panel-anulacion">
+        <div class="panel-head">
+            <div>
+                <h2>Anular factura</h2>
+                <p class="panel-sub">
+                    Explica el motivo. El stock vuelve al inventario y la anulación no se puede revertir.
+                </p>
+            </div>
+        </div>
+
+        <form method="POST" action="<?= e(url('facturacion')) ?>" class="form-anulacion">
+            <?= csrf_field() ?>
+            <input type="hidden" name="accion" value="anular">
+            <input type="hidden" name="id_factura" value="<?= (int) $factura['id_factura'] ?>">
+
+            <label class="field">
+                <span>Motivo de la anulación</span>
+                <input type="text" name="motivo_anulacion" minlength="5" maxlength="200" required
+                       placeholder="Ej.: error en el precio cobrado">
+            </label>
+
+            <button type="submit" class="btn btn-danger"
+                    data-confirm="¿Anular esta factura? Se devolverá el stock al inventario y no se podrá revertir.">
+                Anular factura
+            </button>
+        </form>
+    </section>
+<?php endif; ?>
 
 <?php require __DIR__ . '/../layout/footer.php'; ?>

@@ -48,11 +48,10 @@ $esAdmin = is_admin();
                 <span>▤</span> Facturación
             </a>
 
-            <a class="<?= $activo === 'cierre' ? 'activo' : '' ?>" href="<?= e(url('cierre')) ?>">
-                <span>∑</span> Cierre de caja
-            </a>
-
             <?php if ($esAdmin): ?>
+                <a class="<?= $activo === 'periodos' ? 'activo' : '' ?>" href="<?= e(url('periodos')) ?>">
+                    <span>◷</span> Períodos
+                </a>
                 <a class="<?= $activo === 'mermas' ? 'activo' : '' ?>" href="<?= e(url('mermas')) ?>">
                     <span>▼</span> Merma
                 </a>

@@ -20,14 +20,18 @@ final class PdfFactura
     private string $actual = '';
     private float $y = 0.0;
     private array $factura = [];
+    /** @var array<int, array<string, mixed>> */
+    private array $pagos = [];
 
     /**
      * @param array<string, mixed> $factura
      * @param array<int, array<string, mixed>> $lineas
+     * @param array<int, array<string, mixed>> $pagos
      */
-    public function generar(array $factura, array $lineas): string
+    public function generar(array $factura, array $lineas, array $pagos = []): string
     {
         $this->factura = $factura;
+        $this->pagos   = $pagos;
         $this->paginas = [];
         $this->actual  = '';
         $this->y       = self::ALTO - self::MARGEN;
@@ -36,6 +40,7 @@ final class PdfFactura
         $this->datosCliente();
         $this->tabla($lineas);
         $this->totales();
+        $this->desglosePagos();
         $this->pie();
 
         $this->paginas[] = $this->actual;
@@ -116,10 +121,13 @@ final class PdfFactura
      */
     private function tabla(array $lineas): void
     {
+        // La cabecera necesita espacio para ella y al menos una fila; si no,
+        // se pasa a una página nueva antes de dibujarla.
+        $this->asegurar(30);
         $this->cabeceraTabla();
 
         foreach ($lineas as $indice => $linea) {
-            $this->asegurar(16);
+            $this->asegurar(16, true);
 
             $this->texto(40, $this->y, (string) ($indice + 1), 8);
             $this->texto(
@@ -161,7 +169,7 @@ final class PdfFactura
     {
         $f = $this->factura;
 
-        $this->asegurar(110);
+        $this->asegurar(130);
         $this->linea(300, $this->y, 555, $this->y);
         $this->y -= 15;
 
@@ -193,9 +201,45 @@ final class PdfFactura
         $this->y -= 14;
     }
 
+    /**
+     * Desglose de los pagos registrados (F-21).
+     */
+    private function desglosePagos(): void
+    {
+        if (!$this->pagos) {
+            return;
+        }
+
+        $this->asegurar(40 + count($this->pagos) * 13);
+
+        $this->texto(self::MARGEN, $this->y, 'Desglose de pagos', 9, true);
+        $this->y -= 12;
+
+        $this->texto(self::MARGEN, $this->y, 'Método', 7);
+        $this->texto(240, $this->y, 'Moneda', 7);
+        $this->texto(380, $this->y, 'Monto', 7, false, 'right');
+        $this->texto(555, $this->y, 'Equivalente Bs', 7, false, 'right');
+        $this->y -= 12;
+
+        foreach ($this->pagos as $pago) {
+            $moneda = (string) ($pago['moneda'] ?? 'VES');
+            $monto  = $moneda === 'USD'
+                ? '$ ' . money($pago['monto'])
+                : 'Bs ' . money($pago['monto']);
+
+            $this->texto(self::MARGEN, $this->y, metodo_pago_label((string) ($pago['metodo'] ?? '')), 8);
+            $this->texto(240, $this->y, $moneda === 'USD' ? 'Divisa (USD)' : 'Bolívares', 8);
+            $this->texto(380, $this->y, $monto, 8, false, 'right');
+            $this->texto(555, $this->y, money($pago['monto_ves'] ?? 0), 8, false, 'right');
+            $this->y -= 13;
+        }
+
+        $this->y -= 6;
+    }
+
     private function pie(): void
     {
-        $this->asegurar(45);
+        $this->asegurar(70);
         $this->linea(self::MARGEN, $this->y, 555, $this->y);
         $this->y -= 13;
 
@@ -209,6 +253,29 @@ final class PdfFactura
         if ((string) $this->factura['estado'] === 'ANULADA') {
             $this->y -= 14;
             $this->texto(self::MARGEN, $this->y, 'FACTURA ANULADA', 10, true);
+
+            if (!empty($this->factura['motivo_anulacion'])) {
+                $this->y -= 11;
+                $this->texto(
+                    self::MARGEN,
+                    $this->y,
+                    'Motivo: ' . $this->recortar((string) $this->factura['motivo_anulacion'], 500, 8),
+                    8
+                );
+            }
+
+            if (!empty($this->factura['fecha_anulacion'])) {
+                $this->y -= 10;
+                $this->texto(
+                    self::MARGEN,
+                    $this->y,
+                    'Anulada el ' . date('d/m/Y H:i', strtotime((string) $this->factura['fecha_anulacion']))
+                        . (!empty($this->factura['anulada_por_login'])
+                            ? ' por ' . (string) $this->factura['anulada_por_login']
+                            : ''),
+                    7
+                );
+            }
         }
 
         $this->y -= 12;
@@ -221,7 +288,13 @@ final class PdfFactura
         );
     }
 
-    private function asegurar(float $altura): void
+    /**
+     * Salta a una página nueva si no caben $altura puntos en la actual.
+     *
+     * La cabecera de la tabla solo se repite cuando el corte ocurre dentro de
+     * la tabla ($repetirCabecera); en totales, pagos o pie no tiene sentido.
+     */
+    private function asegurar(float $altura, bool $repetirCabecera = false): void
     {
         if ($this->y - $altura >= 55) {
             return;
@@ -239,7 +312,10 @@ final class PdfFactura
             true
         );
         $this->y -= 18;
-        $this->cabeceraTabla();
+
+        if ($repetirCabecera) {
+            $this->cabeceraTabla();
+        }
     }
 
     /**

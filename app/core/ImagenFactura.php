@@ -20,6 +20,8 @@ final class ImagenFactura
     private float $y = 0.0;
     /** @var array<string, mixed> */
     private array $factura = [];
+    /** @var array<int, array<string, mixed>> */
+    private array $pagos = [];
     private string $fuenteRegular;
     private string $fuenteNegrita;
 
@@ -52,10 +54,12 @@ final class ImagenFactura
     /**
      * @param array<string, mixed> $factura
      * @param array<int, array<string, mixed>> $lineas
+     * @param array<int, array<string, mixed>> $pagos
      */
-    public function generar(array $factura, array $lineas): string
+    public function generar(array $factura, array $lineas, array $pagos = []): string
     {
         $this->factura = $factura;
+        $this->pagos   = $pagos;
         $this->ops     = [];
         $this->y       = self::MARGEN;
 
@@ -63,6 +67,7 @@ final class ImagenFactura
         $this->datosCliente();
         $this->tabla($lineas);
         $this->totales();
+        $this->desglosePagos();
         $this->pie();
 
         $alto = (int) ceil($this->y + self::MARGEN);
@@ -300,6 +305,42 @@ final class ImagenFactura
         $this->y += 26;
     }
 
+    /**
+     * Desglose de los pagos registrados (F-21).
+     */
+    private function desglosePagos(): void
+    {
+        if (!$this->pagos) {
+            return;
+        }
+
+        $this->y += 8;
+        $this->separador();
+        $this->y += 26;
+
+        $this->texto(self::MARGEN, 'Desglose de pagos', 15, true, 'left', 0, self::TINTA);
+        $this->y += 24;
+
+        $this->texto(self::MARGEN, 'Método', 12, false, 'left', 0, self::SUAVE);
+        $this->texto(360, 'Moneda', 12, false, 'left', 0, self::SUAVE);
+        $this->texto(600, 'Monto', 12, false, 'right', 0, self::SUAVE);
+        $this->texto(self::DERECHA, 'Equivalente Bs', 12, false, 'right', 0, self::SUAVE);
+        $this->y += 20;
+
+        foreach ($this->pagos as $pago) {
+            $moneda = (string) ($pago['moneda'] ?? 'VES');
+            $monto  = $moneda === 'USD'
+                ? '$ ' . money($pago['monto'])
+                : 'Bs ' . money($pago['monto']);
+
+            $this->texto(self::MARGEN, metodo_pago_label((string) ($pago['metodo'] ?? '')), 14, false, 'left', 0, self::TINTA);
+            $this->texto(360, $moneda === 'USD' ? 'Divisa (USD)' : 'Bolívares', 14, false, 'left', 0, self::TINTA);
+            $this->texto(600, $monto, 14, false, 'right', 0, self::TINTA);
+            $this->texto(self::DERECHA, money($pago['monto_ves'] ?? 0), 14, false, 'right', 0, self::TINTA);
+            $this->y += 22;
+        }
+    }
+
     private function pie(): void
     {
         $this->separador();
@@ -318,6 +359,35 @@ final class ImagenFactura
         if ((string) $this->factura['estado'] === 'ANULADA') {
             $this->y += 28;
             $this->texto(self::MARGEN, 'FACTURA ANULADA', 20, true, 'left', 0, self::PELIGRO);
+
+            if (!empty($this->factura['motivo_anulacion'])) {
+                $this->y += 22;
+                $this->texto(
+                    self::MARGEN,
+                    'Motivo: ' . $this->recortar((string) $this->factura['motivo_anulacion'], 780, 13),
+                    13,
+                    false,
+                    'left',
+                    0,
+                    self::TINTA
+                );
+            }
+
+            if (!empty($this->factura['fecha_anulacion'])) {
+                $this->y += 20;
+                $this->texto(
+                    self::MARGEN,
+                    'Anulada el ' . date('d/m/Y H:i', strtotime((string) $this->factura['fecha_anulacion']))
+                        . (!empty($this->factura['anulada_por_login'])
+                            ? ' por ' . (string) $this->factura['anulada_por_login']
+                            : ''),
+                    12,
+                    false,
+                    'left',
+                    0,
+                    self::SUAVE
+                );
+            }
         }
 
         $this->y += 26;

@@ -2,25 +2,16 @@
 declare(strict_types=1);
 
 /**
- * Facturación: listado, punto de venta, comprobante, emisión y anulación.
+ * Facturación: historial de ventas, filtros y exportación CSV.
  */
 final class FacturacionController extends BaseController
 {
-    /**
-     * Máximo de formularios de venta abiertos simultáneamente. Cada pestaña
-     * recibe un token distinto y el token se consume al intentar emitir.
-     */
-    private const MAX_TOKENS_EMISION = 10;
-
     public function index(): void
     {
         $this->exigirLogin();
 
-        $modelo = new FacturaModel();
-
-        if ($this->esPost()) {
-            $this->procesarPost($modelo);
-        }
+        $modelo = new FacturaConsultaModel();
+        $idUsuarioAlcance = is_admin() ? null : current_user_id();
 
         // Compatibilidad con enlaces antiguos que usaban ?accion=...
         $accionGet = (string) ($_GET['accion'] ?? '');
@@ -43,7 +34,13 @@ final class FacturacionController extends BaseController
             $this->fallo($e, 'aplicar los filtros del historial de ventas', 'facturacion');
         }
 
-        $tasa = $modelo->tasaVigente();
+        try {
+            $tasa       = $modelo->tasaVigente();
+            $facturas   = $modelo->listar($estado, $busqueda, 100, $desde, $hasta, $idUsuarioAlcance);
+            $resumenHoy = $modelo->resumenHoy($idUsuarioAlcance);
+        } catch (Throwable $e) {
+            $this->fallo($e, 'cargar el historial de ventas', 'panel');
+        }
 
         $this->render('facturacion/index', [
             'titulo'             => 'Historial de ventas',
@@ -53,8 +50,8 @@ final class FacturacionController extends BaseController
             'busqueda'           => $busqueda,
             'desde'              => $desde,
             'hasta'              => $hasta,
-            'facturas'           => $modelo->listar($estado, $busqueda, 100, $desde, $hasta),
-            'resumenHoy'         => $modelo->resumenHoy(),
+            'facturas'           => $facturas,
+            'resumenHoy'         => $resumenHoy,
             'tasa'               => $tasa,
             'tasaDesactualizada' => tasa_desactualizada($tasa),
         ]);
@@ -81,9 +78,15 @@ final class FacturacionController extends BaseController
             $this->fallo($e, 'exportar el historial de ventas', 'facturacion');
         }
 
-        $modelo = new FacturaModel();
+        $modelo = new FacturaExportModel();
 
         if ($tipo === 'detalle') {
+            try {
+                $filas = $modelo->exportarDetalle($estado, $busqueda, $desde, $hasta);
+            } catch (Throwable $e) {
+                $this->fallo($e, 'exportar el detalle de ventas', 'facturacion');
+            }
+
             $this->descargarCsv(
                 'historial_ventas_detalle',
                 [
@@ -92,7 +95,7 @@ final class FacturacionController extends BaseController
                     'Precio USD', 'Precio Bs', 'Alícuota IVA %', 'IVA Bs',
                     'Subtotal Bs', 'Estado',
                 ],
-                $modelo->exportarDetalle($estado, $busqueda, $desde, $hasta),
+                $filas,
                 static function (array $f): array {
                     return [
                         $f['nro_factura_consecutivo'],
@@ -118,6 +121,12 @@ final class FacturacionController extends BaseController
             return;
         }
 
+        try {
+            $filas = $modelo->exportarResumen($estado, $busqueda, $desde, $hasta);
+        } catch (Throwable $e) {
+            $this->fallo($e, 'exportar el resumen de ventas', 'facturacion');
+        }
+
         $this->descargarCsv(
             'historial_ventas_resumen',
             [
@@ -126,7 +135,7 @@ final class FacturacionController extends BaseController
                 'Base imponible Bs', 'IVA Bs', 'IGTF Bs', 'Total Bs',
                 'Total USD', 'Tasa BCV aplicada',
             ],
-            $modelo->exportarResumen($estado, $busqueda, $desde, $hasta),
+            $filas,
             static function (array $f): array {
                 return [
                     $f['nro_factura_consecutivo'],
@@ -147,146 +156,6 @@ final class FacturacionController extends BaseController
                 ];
             }
         );
-    }
-
-    public function nueva(): void
-    {
-        $this->exigirLogin();
-
-        $modelo    = new FacturaModel();
-        $tasa      = $modelo->tasaVigente();
-        $tasaValor = $tasa ? (float) $tasa['tasa_bcv_ves'] : 0.0;
-
-        $posOld = $_SESSION['pos_old'] ?? null;
-        unset($_SESSION['pos_old']);
-
-        $this->render('facturacion/pos', [
-            'titulo'             => 'Nueva venta',
-            'subtitulo'          => 'Punto de venta · Factura fiscal',
-            'activo'             => 'facturacion',
-            'tasa'               => $tasa,
-            'tasaValor'          => $tasaValor,
-            'tasaDesactualizada' => tasa_desactualizada($tasa),
-            'clientes'           => $modelo->clientes(),
-            'productos'          => $modelo->productosVendibles(),
-            'posOld'             => $posOld,
-            'tokenEmision'       => $this->generarTokenEmision(),
-        ]);
-    }
-
-    public function ver(int $idFactura): void
-    {
-        $this->exigirLogin();
-
-        $modelo  = new FacturaModel();
-        $factura = $modelo->obtener($idFactura);
-
-        if (!$factura) {
-            $this->aviso('error', 'La factura solicitada no existe.');
-            $this->redirigir('facturacion');
-        }
-
-        $this->render('facturacion/ver', [
-            'titulo'    => 'Factura ' . $factura['nro_factura_consecutivo'],
-            'subtitulo' => 'Detalle y comprobante fiscal',
-            'activo'    => 'facturacion',
-            'factura'   => $factura,
-            'lineas'    => $modelo->lineas($idFactura),
-        ]);
-    }
-
-    /**
-     * Descarga el comprobante como PDF real, generado en el servidor.
-     *
-     * Se evita el diálogo de impresión del navegador porque Chrome agrega al
-     * pie la URL de la página (http://127.0.0.1:8000/...). Este PDF no incluye
-     * esa ruta ni depende de la configuración de encabezados del navegador.
-     */
-    public function pdf(int $idFactura): void
-    {
-        [$factura, $lineas] = $this->comprobante($idFactura);
-
-        $pdf = (new PdfFactura())->generar($factura, $lineas);
-
-        // ?ver=1 abre el PDF dentro del navegador para imprimirlo sin el pie
-        // que Chrome agrega a las páginas HTML (URL y fecha).
-        $inline = (string) ($_GET['ver'] ?? '') === '1';
-
-        $this->descargar(
-            $pdf,
-            'application/pdf',
-            $this->nombreArchivo($factura, 'pdf'),
-            $inline
-        );
-    }
-
-    /**
-     * Descarga el comprobante como imagen PNG, también generada en el servidor.
-     *
-     * Sirve para enviar la factura por WhatsApp o correo sin depender de que el
-     * destinatario abra un PDF.
-     */
-    public function imagen(int $idFactura): void
-    {
-        [$factura, $lineas] = $this->comprobante($idFactura);
-
-        try {
-            $png = (new ImagenFactura())->generar($factura, $lineas);
-        } catch (Throwable $e) {
-            $this->aviso('error', error_usuario($e, 'generar la imagen del comprobante'));
-            $this->redirigir('facturacion/ver/' . (int) $factura['id_factura']);
-        }
-
-        $this->descargar(
-            $png,
-            'image/png',
-            $this->nombreArchivo($factura, 'png')
-        );
-    }
-
-    /**
-     * Carga la factura y sus líneas exigiendo sesión iniciada.
-     *
-     * @return array{0: array<string, mixed>, 1: array<int, array<string, mixed>>}
-     */
-    private function comprobante(int $idFactura): array
-    {
-        $this->exigirLogin();
-
-        $modelo  = new FacturaModel();
-        $factura = $modelo->obtener($idFactura);
-
-        if (!$factura) {
-            $this->aviso('error', 'La factura solicitada no existe.');
-            $this->redirigir('facturacion');
-        }
-
-        return [$factura, $modelo->lineas($idFactura)];
-    }
-
-    /**
-     * @param array<string, mixed> $factura
-     */
-    private function nombreArchivo(array $factura, string $extension): string
-    {
-        $numero = preg_replace('/[^0-9A-Za-z_-]/', '', (string) $factura['nro_factura_consecutivo']);
-
-        return 'Factura_' . $numero . '_' . date('Ymd') . '.' . $extension;
-    }
-
-    private function descargar(string $contenido, string $tipo, string $archivo, bool $inline = false): void
-    {
-        $disposicion = $inline ? 'inline' : 'attachment';
-
-        header('Content-Type: ' . $tipo);
-        header('Content-Disposition: ' . $disposicion . '; filename="' . $archivo . '"');
-        header('Content-Length: ' . strlen($contenido));
-        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-        header('Pragma: no-cache');
-        header('Expires: 0');
-
-        echo $contenido;
-        exit;
     }
 
     /**
@@ -339,8 +208,10 @@ final class FacturacionController extends BaseController
 
     /**
      * Envía un CSV con BOM UTF-8 y separador «;» para que Excel lo abra bien.
+     *
+     * @param iterable<int, array<string, mixed>> $filas
      */
-    private function descargarCsv(string $nombre, array $cabeceras, array $filas, callable $mapear): void
+    private function descargarCsv(string $nombre, array $cabeceras, iterable $filas, callable $mapear): void
     {
         $archivo = $nombre . '_' . date('Ymd_His') . '.csv';
 
@@ -393,7 +264,12 @@ final class FacturacionController extends BaseController
             return $texto;
         }
 
-        if (strpos("=+-@\t\r", $texto[0]) !== false) {
+        // Se revisa el primer carácter visible: Excel/Calc pueden ignorar
+        // espacios, tabuladores, saltos de línea o el BOM antes de una fórmula.
+        $visible = preg_replace('/^\xEF\xBB\xBF/', '', $texto);
+        $visible = ltrim((string) $visible, " \t\r\n\v\f\0");
+
+        if ($visible !== '' && strpos("=+-@\t\r\n\v\f\0", $visible[0]) !== false) {
             return "'" . $texto;
         }
 
@@ -405,158 +281,5 @@ final class FacturacionController extends BaseController
         $timestamp = strtotime((string) $fecha);
 
         return $timestamp !== false ? date('d/m/Y H:i', $timestamp) : (string) $fecha;
-    }
-
-    /**
-     * Crea un token de idempotencia para el formulario de venta.
-     *
-     * Se guardan varios tokens para permitir varias pestañas abiertas; cada
-     * token se consume una sola vez al procesar el POST de emisión.
-     */
-    private function generarTokenEmision(): string
-    {
-        $token  = bin2hex(random_bytes(16));
-        $tokens = $_SESSION['pos_tokens'] ?? [];
-
-        if (!is_array($tokens)) {
-            $tokens = [];
-        }
-
-        $tokens[$token] = time();
-
-        if (count($tokens) > self::MAX_TOKENS_EMISION) {
-            $tokens = array_slice($tokens, -self::MAX_TOKENS_EMISION, null, true);
-        }
-
-        $_SESSION['pos_tokens'] = $tokens;
-
-        return $token;
-    }
-
-    /**
-     * Valida y consume el token de idempotencia del POST de emisión.
-     *
-     * Un token ausente, repetido o de otra sesión se rechaza antes de tocar
-     * la base de datos, evitando que un doble clic o un reenvío del navegador
-     * emita dos facturas por la misma venta.
-     */
-    private function consumirTokenEmision(): void
-    {
-        $token  = $_POST['token_emision'] ?? '';
-        $tokens = $_SESSION['pos_tokens'] ?? [];
-
-        if (!is_string($token)
-            || $token === ''
-            || !is_array($tokens)
-            || !isset($tokens[$token])
-        ) {
-            throw new InvalidArgumentException(
-                'La solicitud de emisión ya fue procesada o expiró. Revisa el carrito e intenta de nuevo.'
-            );
-        }
-
-        unset($tokens[$token]);
-        $_SESSION['pos_tokens'] = $tokens;
-    }
-
-    private function procesarPost(FacturaModel $modelo): void
-    {
-        csrf_verify();
-
-        $accion = (string) ($_POST['accion'] ?? '');
-
-        if (in_array($accion, ['anular', 'eliminar'], true) && !is_admin()) {
-            $this->aviso('error', 'Solo un administrador puede anular o eliminar facturas.');
-            $this->redirigir('facturacion');
-        }
-
-        try {
-            if ($accion === 'emitir') {
-                $this->consumirTokenEmision();
-
-                $items = json_decode((string) ($_POST['items'] ?? '[]'), true);
-
-                if (!is_array($items)) {
-                    throw new InvalidArgumentException('El carrito no tiene un formato válido.');
-                }
-
-                $idCliente = (int) ($_POST['id_cliente'] ?? 0);
-
-                if ($idCliente <= 0) {
-                    throw new InvalidArgumentException('Selecciona un cliente.');
-                }
-
-                $resultado = $modelo->emitir(
-                    $items,
-                    $idCliente,
-                    (string) ($_POST['metodo_pago'] ?? 'EFECTIVO'),
-                    isset($_POST['igtf']),
-                    current_user_id()
-                );
-
-                $this->aviso(
-                    'ok',
-                    'Factura ' . $resultado['nro_factura'] . ' emitida por Bs ' .
-                    money($resultado['total_ves']) . ' ($ ' . money($resultado['total_usd']) . ').'
-                );
-
-                $this->redirigir('facturacion/ver/' . $resultado['id_factura']);
-            }
-
-            if ($accion === 'anular') {
-                $idFactura = (int) ($_POST['id_factura'] ?? 0);
-
-                if ($idFactura <= 0) {
-                    throw new InvalidArgumentException('Factura inválida.');
-                }
-
-                $modelo->anular($idFactura, current_user_id());
-                $this->aviso('ok', 'Factura anulada. El stock fue devuelto al inventario.');
-
-                $this->redirigir('facturacion/ver/' . $idFactura);
-            }
-
-            if ($accion === 'eliminar') {
-                $idFactura = (int) ($_POST['id_factura'] ?? 0);
-
-                if ($idFactura <= 0) {
-                    throw new InvalidArgumentException('Factura inválida.');
-                }
-
-                $modelo->eliminar($idFactura);
-                $this->aviso('ok', 'Factura anulada eliminada. También se borraron sus líneas.');
-
-                $this->redirigir('facturacion');
-            }
-
-            throw new InvalidArgumentException('La acción solicitada no es válida.');
-        } catch (Throwable $e) {
-            switch ($accion) {
-                case 'emitir':
-                    $contexto = 'emitir la factura';
-                    break;
-                case 'eliminar':
-                    $contexto = 'eliminar la factura';
-                    break;
-                default:
-                    $contexto = 'anular la factura';
-                    break;
-            }
-
-            $this->aviso('error', error_usuario($e, $contexto));
-
-            if ($accion === 'emitir') {
-                $_SESSION['pos_old'] = [
-                    'items'       => (string) ($_POST['items'] ?? '[]'),
-                    'id_cliente'  => (int) ($_POST['id_cliente'] ?? 0),
-                    'metodo_pago' => (string) ($_POST['metodo_pago'] ?? 'EFECTIVO'),
-                    'igtf'        => isset($_POST['igtf']),
-                ];
-
-                $this->redirigir('facturacion/nueva');
-            }
-
-            $this->redirigir('facturacion');
-        }
     }
 }

@@ -44,6 +44,11 @@ def cerrar_aviso_bienvenida(page: Page) -> None:
             pass
 
 
+def aceptar_dialogos(page: Page) -> None:
+    """Acepta los window.confirm de las acciones destructivas."""
+    page.on("dialog", lambda dialogo: dialogo.accept())
+
+
 def capturar(page: Page, nombre: str, *, full_page: bool = False, selector: str | None = None) -> None:
     destino = OUT / nombre
     if selector:
@@ -60,6 +65,18 @@ def capturar(page: Page, nombre: str, *, full_page: bool = False, selector: str 
     print("  ", nombre)
 
 
+def preparar_carrito(page: Page, metodo: str | None = None) -> None:
+    """Agrega dos productos y un cliente sin emitir la factura."""
+    page.locator("[data-agregar]").nth(0).click()
+    page.locator("[data-agregar]").nth(1).click()
+    page.select_option('select[name="id_cliente"]', index=1)
+    page.wait_for_timeout(300)
+
+    if metodo:
+        page.select_option('select[name="metodo_pago"]', metodo)
+        page.wait_for_timeout(300)
+
+
 def capturas_login(browser) -> None:
     contexto = browser.new_context(viewport=VIEWPORT, device_scale_factor=1)
     page = contexto.new_page()
@@ -73,6 +90,7 @@ def capturas_login(browser) -> None:
 def capturas_admin(browser) -> None:
     contexto = browser.new_context(viewport=VIEWPORT, device_scale_factor=1)
     page = contexto.new_page()
+    aceptar_dialogos(page)
     login(page, "admin", "admin123")
     cerrar_aviso_bienvenida(page)
     capturar(page, "01_panel_admin.png", full_page=True)
@@ -87,13 +105,18 @@ def capturas_admin(browser) -> None:
     capturar(page, "04_historial_ventas.png")
 
     page.goto(BASE_URL + "/facturacion/nueva", wait_until="networkidle")
-    # Carrito de ejemplo: dos productos y un cliente, sin emitir la factura.
-    page.locator("[data-agregar]").nth(0).click()
-    page.locator("[data-agregar]").nth(1).click()
-    page.select_option('select[name="id_cliente"]', index=1)
-    page.wait_for_timeout(300)
+    preparar_carrito(page)
     capturar(page, "05_pos.png")
 
+    # Pago mixto: la porción en divisa se escribe en USD y el resto en Bs se
+    # calcula automáticamente. El IGTF se aplica solo a la porción en divisa.
+    page.select_option('select[name="metodo_pago"]', "MIXTO")
+    page.fill('input[name="pago_divisa_usd"]', "5")
+    page.wait_for_timeout(500)
+    capturar(page, "20_pos_mixto.png", full_page=True)
+
+    # La factura 000002 se emitió con pago mixto: sirve para mostrar el
+    # desglose de pagos y el formulario de anulación con motivo obligatorio.
     page.goto(BASE_URL + "/facturacion/ver/2", wait_until="networkidle")
     capturar(page, "06_comprobante_admin.png", selector="main")
 
@@ -106,37 +129,49 @@ def capturas_admin(browser) -> None:
     page.goto(BASE_URL + "/usuarios", wait_until="networkidle")
     capturar(page, "09_usuarios_admin.png")
 
+    # Períodos fiscales: se cierra enero para mostrar el estado «Cerrado» y
+    # el botón «Reabrir»; luego se reabre para no dejar el mes bloqueado.
+    page.goto(BASE_URL + "/periodos?anio=2026", wait_until="networkidle")
+    try:
+        enero = page.locator("tr", has_text="Enero")
+        enero.get_by_role("button", name="Cerrar").click()
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(300)
+        capturar(page, "21_periodos_admin.png", full_page=True)
+        enero = page.locator("tr", has_text="Enero")
+        enero.get_by_role("button", name="Reabrir").click()
+        page.wait_for_load_state("networkidle")
+    except Exception as exc:
+        print("  No se pudo alternar el período de enero:", exc)
+        capturar(page, "21_periodos_admin.png", full_page=True)
+
     contexto.close()
 
 
 def capturas_cajero(browser) -> None:
     contexto = browser.new_context(viewport=VIEWPORT, device_scale_factor=1)
     page = contexto.new_page()
+    aceptar_dialogos(page)
     login(page, "mcajera", "cajera123")
     cerrar_aviso_bienvenida(page)
     capturar(page, "10_panel_cajero.png", full_page=True)
+
+    page.goto(BASE_URL + "/productos", wait_until="networkidle")
+    capturar(page, "19_productos_cajero.png")
 
     page.goto(BASE_URL + "/clientes", wait_until="networkidle")
     capturar(page, "11_clientes_cajero.png")
 
     page.goto(BASE_URL + "/facturacion/nueva", wait_until="networkidle")
-    page.locator("[data-agregar]").nth(0).click()
-    page.locator("[data-agregar]").nth(1).click()
-    page.select_option('select[name="id_cliente"]', index=1)
-    page.wait_for_timeout(300)
+    preparar_carrito(page)
     capturar(page, "12_pos_cajero.png")
 
-    page.goto(BASE_URL + "/facturacion/ver/2", wait_until="networkidle")
+    # La factura 000001 pertenece a la cajera; puede abrirla y descargarla.
+    page.goto(BASE_URL + "/facturacion/ver/1", wait_until="networkidle")
     capturar(page, "13_comprobante_cajero.png", selector="main")
 
     page.goto(BASE_URL + "/facturacion", wait_until="networkidle")
     capturar(page, "14_historial_cajero.png")
-
-    page.goto(BASE_URL + "/mermas", wait_until="networkidle")
-    capturar(page, "15_mermas_cajero.png")
-
-    page.goto(BASE_URL + "/tasas", wait_until="networkidle")
-    capturar(page, "16_tasas_cajero.png")
 
     contexto.close()
 

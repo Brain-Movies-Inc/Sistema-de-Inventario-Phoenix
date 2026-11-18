@@ -3,6 +3,12 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../config/bootstrap.php';
 
+/**
+ * Escritura de facturas: emisión, anulación, eliminación y numeración fiscal.
+ *
+ * Las consultas de lectura viven en FacturaConsultaModel y la exportación CSV
+ * en FacturaExportModel.
+ */
 final class FacturaModel
 {
     private const METODOS_PAGO = [
@@ -14,12 +20,6 @@ final class FacturaModel
         'MIXTO',
     ];
 
-    /**
-     * Bloqueo asesor de MySQL para serializar la generación del consecutivo
-     * entre varias cajas conectadas a la misma base de datos.
-     */
-    private const BLOQUEO_CONSECUTIVO = 'de_todito_reyes_factura_consecutivo';
-
     private PDO $db;
 
     public function __construct()
@@ -27,317 +27,21 @@ final class FacturaModel
         $this->db = db();
     }
 
-    public function tasaVigente(): ?array
-    {
-        // Una sola implementación de la consulta de la tasa vigente.
-        return (new TasaModel())->vigente();
-    }
-
-    public function clientes(): array
-    {
-        return $this->db->query(
-            "SELECT id_cliente, rif_cedula, nombre_razon_social
-             FROM clientes
-             ORDER BY nombre_razon_social ASC"
-        )->fetchAll();
-    }
-
-    public function productosVendibles(): array
-    {
-        return $this->db->query(
-            "SELECT id_producto, codigo_qr_barras, nombre_producto, unidad_medida,
-                    precio_venta_usd, alicuota_iva, stock_actual, stock_minimo
-             FROM productos
-             WHERE activo = 1
-             ORDER BY nombre_producto ASC"
-        )->fetchAll();
-    }
-
-    public function listar(
-        string $estado = '',
-        string $busqueda = '',
-        int $limite = 100,
-        ?string $desde = null,
-        ?string $hasta = null
-    ): array {
-        [$where, $params] = $this->filtros($estado, $busqueda, $desde, $hasta);
-
-        $sql = $this->selectFacturas();
-
-        if ($where) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
-
-        $sql .= ' ORDER BY f.id_factura DESC LIMIT :limite';
-
-        $stmt = $this->db->prepare($sql);
-
-        foreach ($params as $marcador => $valor) {
-            $stmt->bindValue($marcador, $valor);
-        }
-
-        $stmt->bindValue(':limite', max(1, $limite), PDO::PARAM_INT);
-        $stmt->execute();
-
-        return $stmt->fetchAll();
-    }
-
-    public function exportarResumen(
-        string $estado = '',
-        string $busqueda = '',
-        ?string $desde = null,
-        ?string $hasta = null
-    ): array {
-        [$where, $params] = $this->filtros($estado, $busqueda, $desde, $hasta);
-
-        $sql = $this->selectFacturas();
-
-        if ($where) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
-
-        $sql .= ' ORDER BY f.id_factura ASC';
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-
-        return $stmt->fetchAll();
-    }
-
-    public function exportarDetalle(
-        string $estado = '',
-        string $busqueda = '',
-        ?string $desde = null,
-        ?string $hasta = null
-    ): array {
-        [$where, $params] = $this->filtros($estado, $busqueda, $desde, $hasta);
-
-        $sql = "SELECT f.nro_factura_consecutivo, f.nro_control_fiscal, f.fecha_emision,
-                       f.estado, f.metodo_pago, f.tasa_bcv_aplicada,
-                       cl.rif_cedula, cl.nombre_razon_social AS cliente,
-                       u.usuario_login AS cajero,
-                       p.codigo_qr_barras, p.nombre_producto, p.unidad_medida,
-                       d.cantidad_o_peso, d.precio_unitario_usd, d.precio_unitario_ves,
-                       d.alicuota_iva_item, d.monto_iva_item_ves, d.subtotal_item_ves
-                FROM facturas f
-                JOIN clientes cl ON cl.id_cliente = f.id_cliente
-                JOIN usuarios u ON u.id_usuario = f.id_usuario
-                JOIN detalle_factura d ON d.id_factura = f.id_factura
-                JOIN productos p ON p.id_producto = d.id_producto";
-
-        if ($where) {
-            $sql .= ' WHERE ' . implode(' AND ', $where);
-        }
-
-        $sql .= ' ORDER BY f.id_factura ASC, d.id_detalle_factura ASC';
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-
-        return $stmt->fetchAll();
-    }
-
-    /**
-     * Arma el WHERE compartido por el listado y las exportaciones.
-     *
-     * @return array{0: array<int, string>, 1: array<string, mixed>}
-     */
-    private function filtros(
-        string $estado,
-        string $busqueda,
-        ?string $desde,
-        ?string $hasta
-    ): array {
-        $where  = [];
-        $params = [];
-
-        if ($estado === 'EMITIDA' || $estado === 'ANULADA') {
-            $where[] = 'f.estado = :estado';
-            $params[':estado'] = $estado;
-        }
-
-        if ($busqueda !== '') {
-            $where[] = '(f.nro_factura_consecutivo LIKE :q1
-                         OR f.nro_control_fiscal LIKE :q2
-                         OR f.codigo_verificacion LIKE :q3
-                         OR cl.nombre_razon_social LIKE :q4
-                         OR cl.rif_cedula LIKE :q5)';
-            $like = '%' . $busqueda . '%';
-            $params[':q1'] = $like;
-            $params[':q2'] = $like;
-            $params[':q3'] = $like;
-            $params[':q4'] = $like;
-            $params[':q5'] = $like;
-        }
-
-        if ($desde !== null && $desde !== '') {
-            $where[] = 'f.fecha_emision >= :desde';
-            $params[':desde'] = $desde . ' 00:00:00';
-        }
-
-        if ($hasta !== null && $hasta !== '') {
-            $where[] = 'f.fecha_emision <= :hasta';
-            $params[':hasta'] = $hasta . ' 23:59:59';
-        }
-
-        return [$where, $params];
-    }
-
-    private function selectFacturas(): string
-    {
-        return "SELECT f.id_factura, f.nro_factura_consecutivo, f.nro_control_fiscal,
-                       f.codigo_verificacion,
-                       f.fecha_emision, f.estado, f.metodo_pago,
-                       f.subtotal_exento_ves, f.base_imponible_ves,
-                       f.monto_iva_ves, f.monto_igtf_ves,
-                       f.total_ves, f.total_usd, f.tasa_bcv_aplicada,
-                       cl.nombre_razon_social AS cliente, cl.rif_cedula,
-                       u.usuario_login AS cajero,
-                       (SELECT COUNT(*) FROM detalle_factura d WHERE d.id_factura = f.id_factura) AS lineas
-                FROM facturas f
-                JOIN clientes cl ON cl.id_cliente = f.id_cliente
-                JOIN usuarios u ON u.id_usuario = f.id_usuario";
-    }
-
-    public function obtener(int $id): ?array
-    {
-        $stmt = $this->db->prepare(
-            "SELECT f.*,
-                    cl.rif_cedula,
-                    cl.nombre_razon_social AS cliente,
-                    cl.direccion_fiscal,
-                    cl.telefono AS cliente_telefono,
-                    u.usuario_login AS cajero_login,
-                    u.nombre_completo AS cajero_nombre
-             FROM facturas f
-             JOIN clientes cl ON cl.id_cliente = f.id_cliente
-             JOIN usuarios u ON u.id_usuario = f.id_usuario
-             WHERE f.id_factura = :id"
-        );
-        $stmt->execute([':id' => $id]);
-        $fila = $stmt->fetch();
-
-        return $fila ?: null;
-    }
-
-    public function lineas(int $idFactura): array
-    {
-        $stmt = $this->db->prepare(
-            "SELECT d.*, p.nombre_producto, p.codigo_qr_barras, p.unidad_medida
-             FROM detalle_factura d
-             JOIN productos p ON p.id_producto = d.id_producto
-             WHERE d.id_factura = :id
-             ORDER BY d.id_detalle_factura ASC"
-        );
-        $stmt->execute([':id' => $idFactura]);
-
-        return $stmt->fetchAll();
-    }
-
-    public function resumenHoy(): array
-    {
-        $fila = $this->db->query(
-            "SELECT COUNT(*) AS cantidad,
-                    COALESCE(SUM(total_ves), 0) AS total_ves,
-                    COALESCE(SUM(total_usd), 0) AS total_usd
-             FROM facturas
-             WHERE estado = 'EMITIDA' AND DATE(fecha_emision) = CURDATE()"
-        )->fetch();
-
-        return $fila ?: ['cantidad' => 0, 'total_ves' => 0, 'total_usd' => 0];
-    }
-
-    /**
-     * Resumen del corte/cierre de caja de una fecha.
-     *
-     * Solo cuenta facturas EMITIDA: las anuladas se informan aparte para que
-     * el arqueo no las mezcle con el efectivo y los demás medios de pago.
-     *
-     * @return array{
-     *   fecha:string, cantidad:int, total_ves:float, total_usd:float,
-     *   igtf_ves:float, primera:?string, ultima:?string,
-     *   por_metodo:array<int, array<string, mixed>>,
-     *   anuladas:array{cantidad:int, total_ves:float}
-     * }
-     */
-    public function resumenCierre(?string $fecha = null, ?int $idUsuario = null): array
-    {
-        $fecha = $fecha !== null && $fecha !== '' ? $fecha : date('Y-m-d');
-
-        $where  = "f.estado = 'EMITIDA' AND DATE(f.fecha_emision) = :fecha";
-        $params = [':fecha' => $fecha];
-
-        if ($idUsuario !== null) {
-            $where .= ' AND f.id_usuario = :usuario';
-            $params[':usuario'] = $idUsuario;
-        }
-
-        $stmt = $this->db->prepare(
-            "SELECT COUNT(*) AS cantidad,
-                    COALESCE(SUM(f.total_ves), 0) AS total_ves,
-                    COALESCE(SUM(f.total_usd), 0) AS total_usd,
-                    COALESCE(SUM(f.monto_igtf_ves), 0) AS igtf_ves,
-                    MIN(f.fecha_emision) AS primera,
-                    MAX(f.fecha_emision) AS ultima
-             FROM facturas f
-             WHERE {$where}"
-        );
-        $stmt->execute($params);
-        $totales = $stmt->fetch() ?: [];
-
-        $stmt = $this->db->prepare(
-            "SELECT f.metodo_pago,
-                    COUNT(*) AS cantidad,
-                    COALESCE(SUM(f.total_ves), 0) AS total_ves,
-                    COALESCE(SUM(f.total_usd), 0) AS total_usd
-             FROM facturas f
-             WHERE {$where}
-             GROUP BY f.metodo_pago
-             ORDER BY total_ves DESC, f.metodo_pago ASC"
-        );
-        $stmt->execute($params);
-        $porMetodo = $stmt->fetchAll();
-
-        $whereAnuladas  = "f.estado = 'ANULADA' AND DATE(f.fecha_emision) = :fecha";
-        $paramsAnuladas = [':fecha' => $fecha];
-
-        if ($idUsuario !== null) {
-            $whereAnuladas .= ' AND f.id_usuario = :usuario';
-            $paramsAnuladas[':usuario'] = $idUsuario;
-        }
-
-        $stmt = $this->db->prepare(
-            "SELECT COUNT(*) AS cantidad,
-                    COALESCE(SUM(f.total_ves), 0) AS total_ves
-             FROM facturas f
-             WHERE {$whereAnuladas}"
-        );
-        $stmt->execute($paramsAnuladas);
-        $anuladas = $stmt->fetch() ?: [];
-
-        return [
-            'fecha'      => $fecha,
-            'cantidad'   => (int) ($totales['cantidad'] ?? 0),
-            'total_ves'  => (float) ($totales['total_ves'] ?? 0),
-            'total_usd'  => (float) ($totales['total_usd'] ?? 0),
-            'igtf_ves'   => (float) ($totales['igtf_ves'] ?? 0),
-            'primera'    => $totales['primera'] ?? null,
-            'ultima'     => $totales['ultima'] ?? null,
-            'por_metodo' => $porMetodo,
-            'anuladas'   => [
-                'cantidad'  => (int) ($anuladas['cantidad'] ?? 0),
-                'total_ves' => (float) ($anuladas['total_ves'] ?? 0),
-            ],
-        ];
-    }
-
     /**
      * Emite una factura completa en una sola transacción.
      *
      * Los precios, el IVA y el stock SIEMPRE se leen de la base de datos;
-     * el navegador solo envía id_producto y cantidad.
+     * el navegador solo envía id_producto y cantidad. Opcionalmente envía la
+     * tasa y los precios con los que calculó los totales en pantalla: si ya
+     * no coinciden con los vigentes, se rechaza la emisión para que el cajero
+     * recargue y vea los importes reales (F-09).
+     *
+     * En un pago MIXTO el navegador envía la porción pagada en divisa (USD)
+     * y la porción pagada en bolívares. El IGTF se calcula solo sobre la
+     * porción en divisa y la suma de ambos pagos debe cubrir el total (F-21).
      *
      * @param array<int, array{id_producto: int|string, cantidad: int|float|string}> $items
+     * @param array<int, float>|null $preciosEsperados
      * @return array{id_factura:int, nro_factura:string, total_ves:float, total_usd:float, tasa:float}
      */
     public function emitir(
@@ -345,7 +49,11 @@ final class FacturaModel
         int $idCliente,
         string $metodoPago,
         bool $aplicaIgtf,
-        int $idUsuario
+        int $idUsuario,
+        ?float $tasaEsperada = null,
+        ?array $preciosEsperados = null,
+        ?float $pagoDivisaUsd = null,
+        ?float $pagoBolivaresVes = null
     ): array {
         if (!$items) {
             throw new InvalidArgumentException('Agrega al menos un producto al carrito.');
@@ -371,7 +79,7 @@ final class FacturaModel
             );
         }
 
-        $tasa = $this->tasaVigente();
+        $tasa = (new TasaModel())->vigente();
         $tasaValor = $tasa ? (float) $tasa['tasa_bcv_ves'] : 0.0;
 
         if ($tasaValor <= 0) {
@@ -380,11 +88,16 @@ final class FacturaModel
             );
         }
 
-        $this->adquirirBloqueoConsecutivo();
+        if ($tasaEsperada !== null
+            && abs(round($tasaValor, 4) - round($tasaEsperada, 4)) > 0.00001) {
+            throw new InvalidArgumentException(
+                'La tasa BCV cambió mientras la venta estaba abierta. ' .
+                'Recarga el punto de venta e intenta de nuevo.'
+            );
+        }
 
-        try {
-            // Se intenta hasta 3 veces por si dos cajas generan el mismo consecutivo.
-            for ($intento = 1; $intento <= 3; $intento++) {
+        // Se intenta hasta 3 veces por si dos cajas generan el mismo consecutivo.
+        for ($intento = 1; $intento <= 3; $intento++) {
             try {
                 $this->db->beginTransaction();
 
@@ -412,6 +125,16 @@ final class FacturaModel
                     }
 
                     $precioUsd  = (float) $producto['precio_venta_usd'];
+
+                    if ($preciosEsperados !== null
+                        && array_key_exists($idProducto, $preciosEsperados)
+                        && abs((float) $preciosEsperados[$idProducto] - $precioUsd) > 0.0005) {
+                        throw new InvalidArgumentException(
+                            'El precio de "' . $producto['nombre_producto'] . '" cambió mientras ' .
+                            'la venta estaba abierta. Recarga el punto de venta e intenta de nuevo.'
+                        );
+                    }
+
                     $precioVes  = round($precioUsd * $tasaValor, 3);
                     $subtotal   = round($cantidad * $precioVes, 3);
                     $alicuota   = (float) $producto['alicuota_iva'];
@@ -440,9 +163,74 @@ final class FacturaModel
                 $iva    = round($iva, 3);
 
                 $subtotalGeneral = round($exento + $base, 3);
-                $igtf            = $aplicaIgtf ? round(($subtotalGeneral + $iva) * 0.03, 3) : 0.0;
-                $totalVes        = round($subtotalGeneral + $iva + $igtf, 3);
-                $totalUsd        = round($totalVes / $tasaValor, 3);
+                $bienes          = round($subtotalGeneral + $iva, 3);
+
+                if (($pagoDivisaUsd ?? 0.0) < 0 || ($pagoBolivaresVes ?? 0.0) < 0) {
+                    throw new InvalidArgumentException('Los montos de pago no pueden ser negativos.');
+                }
+
+                if ($metodoPago === 'MIXTO') {
+                    $divisaUsd    = round((float) ($pagoDivisaUsd ?? 0.0), 3);
+                    $bolivaresVes = round((float) ($pagoBolivaresVes ?? 0.0), 3);
+                    $divisaVes    = round($divisaUsd * $tasaValor, 3);
+
+                    // La porción en divisa puede superar el subtotal porque
+                    // también cubre su propio IGTF. El máximo es el total que
+                    // resultaría si todo se pagara en divisa: bienes / 0,97.
+                    $maximoDivisa = round($bienes / 0.97, 3);
+
+                    if ($divisaVes > $maximoDivisa + 0.01) {
+                        throw new InvalidArgumentException(
+                            'La porción en divisa no puede superar el total de la venta.'
+                        );
+                    }
+
+                    // El IGTF solo grava la porción pagada en divisa (F-21).
+                    $igtf     = round($divisaVes * 0.03, 3);
+                    $totalVes = round($bienes + $igtf, 3);
+
+                    if (abs(round($divisaVes + $bolivaresVes, 3) - $totalVes) > 0.011) {
+                        throw new InvalidArgumentException(
+                            'Los pagos no coinciden con el total. ' .
+                            'Divisa: Bs ' . number_format($divisaVes, 2, ',', '.') .
+                            ', bolívares: Bs ' . number_format($bolivaresVes, 2, ',', '.') .
+                            ', total: Bs ' . number_format($totalVes, 2, ',', '.') . '.'
+                        );
+                    }
+
+                    $pagos = [];
+
+                    if ($divisaUsd > 0) {
+                        $pagos[] = [
+                            'metodo'    => 'MIXTO',
+                            'moneda'    => 'USD',
+                            'monto'     => $divisaUsd,
+                            'monto_ves' => $divisaVes,
+                        ];
+                    }
+
+                    if ($bolivaresVes > 0) {
+                        $pagos[] = [
+                            'metodo'    => 'MIXTO',
+                            'moneda'    => 'VES',
+                            'monto'     => $bolivaresVes,
+                            'monto_ves' => $bolivaresVes,
+                        ];
+                    }
+                } else {
+                    $enDivisa = $aplicaIgtf || $metodoPago === 'ZELLE';
+                    $igtf     = $enDivisa ? round($bienes * 0.03, 3) : 0.0;
+                    $totalVes = round($bienes + $igtf, 3);
+
+                    $pagos = [[
+                        'metodo'    => $metodoPago,
+                        'moneda'    => $enDivisa ? 'USD' : 'VES',
+                        'monto'     => $enDivisa ? round($totalVes / $tasaValor, 3) : $totalVes,
+                        'monto_ves' => $totalVes,
+                    ]];
+                }
+
+                $totalUsd = round($totalVes / $tasaValor, 3);
 
                 $consecutivo = $this->siguienteConsecutivo();
 
@@ -476,6 +264,21 @@ final class FacturaModel
                 ]);
 
                 $idFactura = (int) $this->db->lastInsertId();
+
+                $insertarPago = $this->db->prepare(
+                    "INSERT INTO pagos_factura (id_factura, metodo, moneda, monto, monto_ves)
+                     VALUES (:factura, :metodo, :moneda, :monto, :monto_ves)"
+                );
+
+                foreach ($pagos as $pago) {
+                    $insertarPago->execute([
+                        ':factura'  => $idFactura,
+                        ':metodo'   => $pago['metodo'],
+                        ':moneda'   => $pago['moneda'],
+                        ':monto'    => $this->dec($pago['monto']),
+                        ':monto_ves' => $this->dec($pago['monto_ves']),
+                    ]);
+                }
 
                 $insertarLinea = $this->db->prepare(
                     "INSERT INTO detalle_factura
@@ -536,6 +339,11 @@ final class FacturaModel
 
                 // Choque de consecutivo: se reintenta con el siguiente número.
                 if ($e->getCode() === '23000' && stripos($e->getMessage(), 'uq_facturas') !== false) {
+                    // El rollback revirtió el incremento de secuencias_fiscales,
+                    // así que sin resincronizar el reintento pediría el mismo
+                    // número y volvería a chocar. Se avanza la secuencia hasta
+                    // el máximo ya emitido antes de reintentar.
+                    $this->sincronizarSecuencia();
                     continue;
                 }
 
@@ -549,16 +357,29 @@ final class FacturaModel
             }
         }
 
-            throw new RuntimeException(
-                'No se pudo generar un número de factura único. Intenta emitir de nuevo.'
-            );
-        } finally {
-            $this->liberarBloqueoConsecutivo();
-        }
+        throw new RuntimeException(
+            'No se pudo generar un número de factura único. Intenta emitir de nuevo.'
+        );
     }
 
-    public function anular(int $idFactura, int $idUsuario): void
+    /**
+     * Anula una factura y devuelve su stock.
+     *
+     * El motivo es obligatorio y queda guardado en la propia factura, junto
+     * con la fecha/hora y el usuario que ejecutó la anulación (F-16). No se
+     * permite anular una factura de un período fiscal cerrado (F-17).
+     */
+    public function anular(int $idFactura, int $idUsuario, string $motivo): void
     {
+        $motivo = trim($motivo);
+        $largo  = function_exists('mb_strlen') ? mb_strlen($motivo, 'UTF-8') : strlen($motivo);
+
+        if ($largo < 5 || $largo > 200) {
+            throw new InvalidArgumentException(
+                'Indica el motivo de la anulación (entre 5 y 200 caracteres).'
+            );
+        }
+
         $this->db->beginTransaction();
 
         try {
@@ -568,7 +389,10 @@ final class FacturaModel
                 ->execute([':id' => $idUsuario]);
 
             $stmt = $this->db->prepare(
-                "SELECT estado FROM facturas WHERE id_factura = :id FOR UPDATE"
+                "SELECT estado, fecha_emision
+                 FROM facturas
+                 WHERE id_factura = :id
+                 FOR UPDATE"
             );
             $stmt->execute([':id' => $idFactura]);
             $factura = $stmt->fetch();
@@ -579,6 +403,13 @@ final class FacturaModel
 
             if ($factura['estado'] === 'ANULADA') {
                 throw new RuntimeException('La factura ya está anulada.');
+            }
+
+            if ($this->periodoCerrado((string) $factura['fecha_emision'])) {
+                throw new RuntimeException(
+                    'El período fiscal de esta factura está cerrado. ' .
+                    'Un administrador debe reabrirlo antes de anular.'
+                );
             }
 
             $stmt = $this->db->prepare(
@@ -603,9 +434,18 @@ final class FacturaModel
             }
 
             $stmt = $this->db->prepare(
-                "UPDATE facturas SET estado = 'ANULADA' WHERE id_factura = :id"
+                "UPDATE facturas
+                 SET estado = 'ANULADA',
+                     motivo_anulacion = :motivo,
+                     fecha_anulacion = NOW(),
+                     id_usuario_anulacion = :usuario
+                 WHERE id_factura = :id"
             );
-            $stmt->execute([':id' => $idFactura]);
+            $stmt->execute([
+                ':motivo'  => $motivo,
+                ':usuario' => $idUsuario,
+                ':id'      => $idFactura,
+            ]);
 
             // El trigger trg_facturas_au registra el cambio en la bitácora.
             $this->db->commit();
@@ -637,7 +477,10 @@ final class FacturaModel
 
         try {
             $stmt = $this->db->prepare(
-                "SELECT estado FROM facturas WHERE id_factura = :id FOR UPDATE"
+                "SELECT estado, fecha_emision
+                 FROM facturas
+                 WHERE id_factura = :id
+                 FOR UPDATE"
             );
             $stmt->execute([':id' => $idFactura]);
             $factura = $stmt->fetch();
@@ -649,6 +492,13 @@ final class FacturaModel
             if ($factura['estado'] !== 'ANULADA') {
                 throw new RuntimeException(
                     'Solo se pueden eliminar facturas anuladas. Anula la factura primero.'
+                );
+            }
+
+            if ($this->periodoCerrado((string) $factura['fecha_emision'])) {
+                throw new RuntimeException(
+                    'El período fiscal de esta factura está cerrado. ' .
+                    'Un administrador debe reabrirlo antes de eliminarla.'
                 );
             }
 
@@ -675,11 +525,36 @@ final class FacturaModel
      */
     private function consolidarItems(array $items): array
     {
+        if (count($items) > 500) {
+            throw new InvalidArgumentException('El carrito tiene demasiadas líneas.');
+        }
+
         $consolidado = [];
 
         foreach ($items as $item) {
-            $idProducto = (int) ($item['id_producto'] ?? 0);
-            $cantidad   = round((float) ($item['cantidad'] ?? 0), 3);
+            if (!is_array($item)) {
+                throw new InvalidArgumentException('Hay una línea del carrito con un formato inválido.');
+            }
+
+            $idRaw   = $item['id_producto'] ?? null;
+            $cantRaw = $item['cantidad'] ?? null;
+
+            if (is_int($idRaw)) {
+                $idProducto = $idRaw;
+            } elseif (is_float($idRaw) && floor($idRaw) === $idRaw) {
+                $idProducto = (int) $idRaw;
+            } elseif (is_string($idRaw) && ctype_digit($idRaw)) {
+                $idProducto = (int) $idRaw;
+            } else {
+                throw new InvalidArgumentException('Hay una línea con un producto inválido.');
+            }
+
+            if (!is_int($cantRaw) && !is_float($cantRaw)
+                && !(is_string($cantRaw) && is_numeric($cantRaw))) {
+                throw new InvalidArgumentException('Hay una línea con una cantidad inválida.');
+            }
+
+            $cantidad = round((float) $cantRaw, 3);
 
             if ($idProducto <= 0 || $cantidad <= 0) {
                 throw new InvalidArgumentException('Hay una línea con producto o cantidad inválida.');
@@ -711,6 +586,7 @@ final class FacturaModel
         }
 
         $marcadores = implode(',', array_fill(0, count($ids), '?'));
+
         $stmt = $this->db->prepare(
             "SELECT id_producto, nombre_producto, unidad_medida, precio_venta_usd,
                     alicuota_iva, stock_actual
@@ -729,23 +605,44 @@ final class FacturaModel
     }
 
     /**
+     * Reserva el siguiente número fiscal de forma atómica.
+     *
+     * El UPDATE sobre secuencias_fiscales deja la fila bloqueada hasta el
+     * commit de la factura, así que dos cajas nunca obtienen el mismo número
+     * sin necesidad de un lock global (F-14). LAST_INSERT_ID(expr) guarda el
+     * valor reservado en la sesión para recuperarlo con lastInsertId().
+     *
      * @return array{nro:string, control:string, codigo:string}
      */
     private function siguienteConsecutivo(): array
     {
-        $fila = $this->db->query(
-            "SELECT COALESCE(MAX(numero), 0) AS ultimo
-             FROM (
-                 SELECT CAST(nro_factura_consecutivo AS UNSIGNED) AS numero
-                 FROM facturas
-                 UNION ALL
-                 SELECT CAST(JSON_UNQUOTE(JSON_EXTRACT(detalle_json, '$.nro_factura')) AS UNSIGNED)
-                 FROM bitacora_auditoria
-                 WHERE modulo = 'FACTURAS' AND accion = 'EMISION'
-             ) AS numeracion"
-        )->fetch();
+        $this->db->exec(
+            "INSERT IGNORE INTO secuencias_fiscales (nombre, ultimo_numero)
+             VALUES ('FACTURA', 0)"
+        );
 
-        $siguiente = (int) ($fila['ultimo'] ?? 0) + 1;
+        $stmt = $this->db->prepare(
+            "UPDATE secuencias_fiscales
+             SET ultimo_numero = LAST_INSERT_ID(ultimo_numero + 1)
+             WHERE nombre = 'FACTURA'"
+        );
+        $stmt->execute();
+
+        $siguiente = (int) $this->db->lastInsertId();
+
+        if ($siguiente <= 0) {
+            $stmt = $this->db->query(
+                "SELECT ultimo_numero FROM secuencias_fiscales WHERE nombre = 'FACTURA'"
+            );
+            $siguiente = (int) $stmt->fetchColumn();
+        }
+
+        if ($siguiente <= 0) {
+            throw new RuntimeException(
+                'No se pudo reservar el número de factura. Intenta emitir de nuevo.'
+            );
+        }
+
         $nro = str_pad((string) $siguiente, 6, '0', STR_PAD_LEFT);
 
         return [
@@ -753,6 +650,31 @@ final class FacturaModel
             'control' => '00-' . $nro,
             'codigo'  => $this->codigoVerificacion(),
         ];
+    }
+
+    /**
+     * Avanza la secuencia fiscal hasta el mayor consecutivo ya emitido.
+     *
+     * Se usa tras un choque de clave única: el rollback de la transacción
+     * revierte el incremento hecho por siguienteConsecutivo(), y sin esta
+     * resincronización el reintento volvería a pedir el mismo número.
+     */
+    private function sincronizarSecuencia(): void
+    {
+        $this->db->exec(
+            "INSERT IGNORE INTO secuencias_fiscales (nombre, ultimo_numero)
+             VALUES ('FACTURA', 0)"
+        );
+
+        $this->db->exec(
+            "UPDATE secuencias_fiscales s
+             SET s.ultimo_numero = GREATEST(
+                 s.ultimo_numero,
+                 (SELECT COALESCE(MAX(CAST(f.nro_factura_consecutivo AS UNSIGNED)), 0)
+                  FROM facturas f)
+             )
+             WHERE s.nombre = 'FACTURA'"
+        );
     }
 
     /**
@@ -789,31 +711,30 @@ final class FacturaModel
     }
 
     /**
-     * Toma un bloqueo nombrado antes de leer el último consecutivo.
-     *
-     * El bloqueo se libera al terminar la emisión (éxito o error) para que
-     * dos transacciones no lean el mismo número base al mismo tiempo.
+     * Indica si el período fiscal (año/mes) de una fecha está cerrado.
      */
-    private function adquirirBloqueoConsecutivo(): void
+    private function periodoCerrado(string $fecha): bool
     {
-        $stmt = $this->db->prepare('SELECT GET_LOCK(:nombre, 10)');
-        $stmt->execute([':nombre' => self::BLOQUEO_CONSECUTIVO]);
+        $marca = DateTimeImmutable::createFromFormat('!Y-m-d H:i:s', $fecha)
+            ?: DateTimeImmutable::createFromFormat('!Y-m-d', $fecha);
 
-        if ((int) $stmt->fetchColumn() !== 1) {
-            throw new RuntimeException(
-                'El sistema está ocupado generando otra factura. Intenta de nuevo en unos segundos.'
-            );
+        if ($marca === false) {
+            return false;
         }
-    }
 
-    private function liberarBloqueoConsecutivo(): void
-    {
-        try {
-            $stmt = $this->db->prepare('SELECT RELEASE_LOCK(:nombre)');
-            $stmt->execute([':nombre' => self::BLOQUEO_CONSECUTIVO]);
-        } catch (Throwable $e) {
-            // Si la conexión se cierra, MySQL libera el bloqueo automáticamente.
-        }
+        $stmt = $this->db->prepare(
+            "SELECT cerrado
+             FROM periodos_fiscales
+             WHERE anio = :anio AND mes = :mes
+             LIMIT 1"
+        );
+        $stmt->execute([
+            ':anio' => (int) $marca->format('Y'),
+            ':mes'  => (int) $marca->format('n'),
+        ]);
+        $valor = $stmt->fetchColumn();
+
+        return $valor !== false && (int) $valor === 1;
     }
 
     private function dec($valor): string

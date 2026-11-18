@@ -4,10 +4,12 @@ if (!defined('SISTEMA_DR')) {
     exit('Acceso no permitido.');
 }
 
-$oldCliente = (int) ($posOld['id_cliente'] ?? 0);
-$oldMetodo  = (string) ($posOld['metodo_pago'] ?? 'EFECTIVO');
-$oldIgtf    = !empty($posOld['igtf']);
-$oldItems   = (string) ($posOld['items'] ?? '[]');
+$oldCliente      = (int) ($posOld['id_cliente'] ?? 0);
+$oldMetodo       = (string) ($posOld['metodo_pago'] ?? 'EFECTIVO');
+$oldIgtf         = !empty($posOld['igtf']);
+$oldItems        = (string) ($posOld['items'] ?? '[]');
+$oldPagoDivisa   = (string) ($posOld['pago_divisa_usd'] ?? '');
+$oldPagoBolivares = (string) ($posOld['pago_bolivares_ves'] ?? '');
 
 $metodos = [
     'EFECTIVO'      => 'Efectivo',
@@ -52,7 +54,12 @@ require __DIR__ . '/../layout/header.php';
 <?php endif; ?>
 
 <div class="pos" data-pos data-tasa="<?= e(input_number($tasaValor, 4)) ?>"
-     data-carrito-inicial="<?= e($oldItems) ?>">
+     data-carrito-inicial="<?= e($oldItems) ?>"
+     data-url-productos="<?= e(url('facturacion/productos')) ?>"
+     data-url-clientes="<?= e(url('facturacion/clientes')) ?>"
+     data-productos-total="<?= (int) $totalProductos ?>"
+     data-productos-paginas="<?= max(1, (int) ceil($totalProductos / max(1, (int) $porPaginaProductos))) ?>"
+     data-productos-por-pagina="<?= (int) $porPaginaProductos ?>">
 
     <section class="panel pos-catalogo">
         <div class="panel-head">
@@ -75,7 +82,7 @@ require __DIR__ . '/../layout/header.php';
                             <th></th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-productos-cuerpo>
                     <?php foreach ($productos as $p): ?>
                         <?php
                         $stock = (float) $p['stock_actual'];
@@ -110,6 +117,19 @@ require __DIR__ . '/../layout/header.php';
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+            </div>
+
+            <div class="pos-paginacion" data-paginacion>
+                <button type="button" class="btn btn-sm btn-ghost" data-pagina-anterior disabled>
+                    Anterior
+                </button>
+                <span class="muted" data-pagina-info>
+                    Mostrando 1-<?= count($productos) ?> de <?= (int) $totalProductos ?>
+                </span>
+                <button type="button" class="btn btn-sm btn-ghost" data-pagina-siguiente
+                    <?= $totalProductos > (int) $porPaginaProductos ? '' : 'disabled' ?>>
+                    Siguiente
+                </button>
             </div>
         <?php else: ?>
             <div class="empty">
@@ -152,10 +172,14 @@ require __DIR__ . '/../layout/header.php';
             <input type="hidden" name="accion" value="emitir">
             <input type="hidden" name="token_emision" value="<?= e($tokenEmision ?? '') ?>">
             <input type="hidden" name="items" value="[]" data-items>
+            <input type="hidden" name="tasa_aplicada" value="<?= e(input_number($tasaValor, 4)) ?>">
+            <input type="hidden" name="precios" value="{}" data-precios>
 
             <label class="field">
                 <span>Cliente</span>
-                <select name="id_cliente" required>
+                <input type="search" class="search" data-cliente-buscar
+                       placeholder="Buscar por nombre o RIF..." autocomplete="off">
+                <select name="id_cliente" required data-cliente-select>
                     <option value="">-- Selecciona --</option>
                     <?php foreach ($clientes as $c): ?>
                         <option value="<?= (int) $c['id_cliente'] ?>"
@@ -177,10 +201,28 @@ require __DIR__ . '/../layout/header.php';
                 </select>
             </label>
 
-            <label class="check">
+            <label class="check" data-igtf-wrap>
                 <input type="checkbox" name="igtf" value="1" data-igtf <?= $oldIgtf ? 'checked' : '' ?>>
                 Pago en divisa (IGTF 3%)
             </label>
+
+            <div class="pago-mixto" data-pago-mixto <?= $oldMetodo === 'MIXTO' ? '' : 'hidden' ?>>
+                <p class="muted">
+                    Indica la porción en divisa. El IGTF se calcula solo sobre esa porción
+                    y el resto se completa en bolívares.
+                </p>
+                <label class="field">
+                    <span>Monto en divisa (USD)</span>
+                    <input type="number" name="pago_divisa_usd" step="0.01" min="0"
+                           inputmode="decimal" value="<?= e($oldPagoDivisa) ?>" data-pago-divisa>
+                </label>
+                <label class="field">
+                    <span>Monto en bolívares (Bs)</span>
+                    <input type="number" name="pago_bolivares_ves" step="0.01" min="0"
+                           inputmode="decimal" value="<?= e($oldPagoBolivares) ?>" data-pago-bolivares>
+                </label>
+                <p class="muted" data-pago-mixto-info></p>
+            </div>
 
             <div class="resumen">
                 <div><span>Tasa BCV</span><strong>Bs <?= numero($tasaValor, 4) ?></strong></div>

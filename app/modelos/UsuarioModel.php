@@ -50,9 +50,9 @@ final class UsuarioModel
                 FROM usuarios";
 
         if ($busqueda !== '') {
-            $sql .= " WHERE nombre_completo LIKE :q1
-                        OR usuario_login LIKE :q2
-                        OR cedula LIKE :q3";
+            $sql .= " WHERE (nombre_completo LIKE :q1
+                         OR usuario_login LIKE :q2
+                         OR cedula LIKE :q3)";
         }
 
         $sql .= " ORDER BY (rol = 'ADMIN') DESC, nombre_completo ASC";

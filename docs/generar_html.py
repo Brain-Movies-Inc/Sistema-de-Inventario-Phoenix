@@ -887,7 +887,7 @@ main {{
   <div class="brand">De Todito Reyes</div>
   <h1>Documentación del sistema</h1>
   <div class="meta">
-    <strong>Versión 1.0</strong><br>
+    <strong>Versión 1.1</strong><br>
     Manuales, revisión técnica y diagramas UML<br>
     Generado el {today}
   </div>
@@ -909,7 +909,7 @@ main {{
       {''.join(f'<a href="#{doc["id"]}"><b>{esc(doc["label"])}</b><small>{esc(doc["description"])}</small></a>' for doc in DOCS)}
       <a href="#diagramas"><b>Diagramas de casos de uso</b><small>Vista general y por rol, con include y extend.</small></a>
     </div>
-    <p class="date">Documento generado el {today} · Versión 1.0</p>
+    <p class="date">Documento generado el {today} · Versión 1.1</p>
   </section>
 
   {''.join(rendered)}

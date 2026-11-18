@@ -67,10 +67,9 @@ require __DIR__ . '/../layout/header.php';
     <div class="panel-head">
         <div>
             <h2>Historial de ventas</h2>
-            <p class="panel-sub"><?= count($facturas) ?> factura(s) encontrada(s)</p>
+            <p class="panel-sub"><?= count($facturas) ?> factura(s) en esta página</p>
         </div>
         <div class="acciones">
-            <a class="btn btn-ghost" href="<?= e(url('cierre')) ?>">Cierre de caja</a>
             <?php if (is_admin()): ?>
                 <a class="btn btn-ghost" href="<?= e($urlResumen) ?>">↓ Resumen CSV</a>
                 <a class="btn btn-ghost" href="<?= e($urlDetalle) ?>">↓ Detalle CSV</a>

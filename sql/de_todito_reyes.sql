@@ -1,6 +1,6 @@
 -- =====================================================================
 --  SISTEMA "DE TODITO REYES"
---  Modelo Entidad-Relacion Normalizado (3FN) - 12 tablas
+--  Modelo Entidad-Relacion Normalizado (3FN) - 15 tablas
 --  Motor: MySQL 8.0+ / MariaDB 10.4+ (InnoDB, utf8mb4)
 --  Bimonetarismo BCV | Soporte pesaje DECIMAL(12,3)
 --  Normativa SENIAT (Prov. 0071 y Art. 104 COT)
@@ -10,7 +10,7 @@
 --    2) Pestana "Importar" -> "Elegir archivo" -> seleccionar este .sql
 --    3) Cotejo de caracteres: utf-8  ->  "Continuar"
 -- ---------------------------------------------------------------------
---  ADVERTENCIA: este script BORRA las 12 tablas si ya existen.
+--  ADVERTENCIA: este script BORRA las 15 tablas si ya existen.
 -- =====================================================================
 
 SET NAMES utf8mb4;
@@ -24,6 +24,9 @@ USE de_todito_reyes;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS bitacora_auditoria;
+DROP TABLE IF EXISTS pagos_factura;
+DROP TABLE IF EXISTS periodos_fiscales;
+DROP TABLE IF EXISTS secuencias_fiscales;
 DROP TABLE IF EXISTS merma_ajustes;
 DROP TABLE IF EXISTS detalle_factura;
 DROP TABLE IF EXISTS facturas;
@@ -228,6 +231,9 @@ CREATE TABLE facturas (
   metodo_pago             ENUM('EFECTIVO','PAGO_MOVIL','PUNTO_VENTA','TRANSFERENCIA','ZELLE','MIXTO')
                           NOT NULL DEFAULT 'EFECTIVO',
   estado                  ENUM('EMITIDA','ANULADA') NOT NULL DEFAULT 'EMITIDA',
+  motivo_anulacion        VARCHAR(200)  NULL COMMENT 'Motivo explicado por el usuario que anula',
+  fecha_anulacion         DATETIME      NULL,
+  id_usuario_anulacion    INT           NULL COMMENT 'Usuario que ejecuto la anulacion',
   id_cliente              INT           NOT NULL,
   id_usuario              INT           NOT NULL COMMENT 'Cajero que emite',
   PRIMARY KEY (id_factura),
@@ -236,6 +242,7 @@ CREATE TABLE facturas (
   UNIQUE KEY uq_facturas_codigo (codigo_verificacion),
   KEY idx_facturas_cliente (id_cliente),
   KEY idx_facturas_usuario (id_usuario),
+  KEY idx_facturas_usuario_anulacion (id_usuario_anulacion),
   KEY idx_facturas_fecha (fecha_emision),
   KEY idx_facturas_estado (estado),
   CONSTRAINT fk_facturas_cliente
@@ -244,6 +251,9 @@ CREATE TABLE facturas (
   CONSTRAINT fk_facturas_usuario
     FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario)
     ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_facturas_usuario_anulacion
+    FOREIGN KEY (id_usuario_anulacion) REFERENCES usuarios (id_usuario)
+    ON UPDATE CASCADE ON DELETE SET NULL,
   CONSTRAINT chk_facturas_totales CHECK (total_ves >= 0 AND total_usd >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -271,6 +281,56 @@ CREATE TABLE detalle_factura (
     FOREIGN KEY (id_producto) REFERENCES productos (id_producto)
     ON UPDATE CASCADE ON DELETE RESTRICT,
   CONSTRAINT chk_dfactura_cantidad CHECK (cantidad_o_peso > 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- =====================================================================
+--  PAGOS DE FACTURA (desglose por moneda y medio)
+-- =====================================================================
+CREATE TABLE pagos_factura (
+  id_pago             INT           NOT NULL AUTO_INCREMENT,
+  id_factura          INT           NOT NULL,
+  metodo              ENUM('EFECTIVO','PAGO_MOVIL','PUNTO_VENTA','TRANSFERENCIA','ZELLE','MIXTO')
+                      NOT NULL DEFAULT 'EFECTIVO',
+  moneda              ENUM('VES','USD') NOT NULL DEFAULT 'VES',
+  monto               DECIMAL(12,3) NOT NULL COMMENT 'Monto en la moneda indicada',
+  monto_ves           DECIMAL(12,3) NOT NULL COMMENT 'Equivalente en bolivares',
+  PRIMARY KEY (id_pago),
+  KEY idx_pagos_factura (id_factura),
+  CONSTRAINT fk_pagos_factura
+    FOREIGN KEY (id_factura) REFERENCES facturas (id_factura)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT chk_pagos_monto CHECK (monto >= 0 AND monto_ves >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- =====================================================================
+--  PERIODOS FISCALES (cierre mensual)
+-- =====================================================================
+CREATE TABLE periodos_fiscales (
+  anio               SMALLINT      NOT NULL,
+  mes                TINYINT       NOT NULL,
+  cerrado            TINYINT(1)    NOT NULL DEFAULT 0,
+  fecha_cierre       DATETIME      NULL,
+  id_usuario_cierre  INT           NULL,
+  PRIMARY KEY (anio, mes),
+  KEY idx_periodos_usuario (id_usuario_cierre),
+  CONSTRAINT chk_periodos_mes CHECK (mes BETWEEN 1 AND 12),
+  CONSTRAINT fk_periodos_usuario
+    FOREIGN KEY (id_usuario_cierre) REFERENCES usuarios (id_usuario)
+    ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- =====================================================================
+--  SECUENCIAS FISCALES (consecutivo sin depender de la bitacora)
+-- =====================================================================
+CREATE TABLE secuencias_fiscales (
+  nombre          VARCHAR(40)  NOT NULL,
+  ultimo_numero   INT          NOT NULL DEFAULT 0,
+  actualizado_en  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+                               ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (nombre)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -428,7 +488,10 @@ BEGIN
                         'estado_anterior', OLD.estado,
                         'estado_nuevo', NEW.estado,
                         'total_anterior', OLD.total_ves,
-                        'total_nuevo', NEW.total_ves));
+                        'total_nuevo', NEW.total_ves,
+                        'motivo_anulacion', NEW.motivo_anulacion,
+                        'fecha_anulacion', NEW.fecha_anulacion,
+                        'id_usuario_anulacion', NEW.id_usuario_anulacion));
   END IF;
 END $$
 
@@ -539,6 +602,14 @@ INSERT INTO detalle_factura
   (1, 3, 2.000, 3.100, 113.150, 16.00, 36.210, 262.510),
   (1, 5, 1.000, 2.750, 100.380, 16.00, 16.060, 116.440),
   (1, 6, 1.250, 6.800, 248.200,  0.00,  0.000, 310.250);
+
+-- Pago de la factura demo (un solo medio, en bolivares)
+INSERT INTO pagos_factura (id_factura, metodo, moneda, monto, monto_ves) VALUES
+  (1, 'PAGO_MOVIL', 'VES', 981.200, 981.200);
+
+-- Consecutivo fiscal: la factura demo ocupa el numero 1
+INSERT INTO secuencias_fiscales (nombre, ultimo_numero) VALUES
+  ('FACTURA', 1);
 
 -- Merma por vencimiento
 INSERT INTO merma_ajustes

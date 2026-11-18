@@ -19,7 +19,7 @@ final class ClienteModel
                 FROM clientes c";
 
         if ($busqueda !== '') {
-            $sql .= " WHERE c.nombre_razon_social LIKE :q1 OR c.rif_cedula LIKE :q2";
+            $sql .= " WHERE (c.nombre_razon_social LIKE :q1 OR c.rif_cedula LIKE :q2)";
         }
 
         $sql .= " ORDER BY c.nombre_razon_social ASC";

@@ -52,6 +52,7 @@ $legacy = [
     '/facturacion.php' => 'facturacion',
     '/usuarios.php'    => 'usuarios',
     '/tasas.php'       => 'tasas',
+    '/periodos.php'    => 'periodos',
 ];
 
 if (isset($legacy[$ruta])) {
@@ -92,21 +93,29 @@ try {
     } elseif ($ruta === '/clientes') {
         (new ClientesController())->index();
     } elseif ($ruta === '/facturacion') {
-        (new FacturacionController())->index();
+        if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST') {
+            (new VentaController())->procesar();
+        } else {
+            (new FacturacionController())->index();
+        }
     } elseif ($ruta === '/mermas') {
         (new MermasController())->index();
-    } elseif ($ruta === '/cierre') {
-        (new CierreController())->index();
+    } elseif ($ruta === '/periodos') {
+        (new PeriodosController())->index();
     } elseif ($ruta === '/facturacion/nueva') {
-        (new FacturacionController())->nueva();
+        (new PosController())->nueva();
+    } elseif ($ruta === '/facturacion/productos') {
+        (new PosController())->productos();
+    } elseif ($ruta === '/facturacion/clientes') {
+        (new PosController())->clientes();
     } elseif ($ruta === '/facturacion/exportar') {
         (new FacturacionController())->exportar();
     } elseif (preg_match('#^/facturacion/ver/(\d+)$#', $ruta, $coincidencia) === 1) {
-        (new FacturacionController())->ver((int) $coincidencia[1]);
+        (new ComprobanteController())->ver((int) $coincidencia[1]);
     } elseif (preg_match('#^/facturacion/pdf/(\d+)$#', $ruta, $coincidencia) === 1) {
-        (new FacturacionController())->pdf((int) $coincidencia[1]);
+        (new ComprobanteController())->pdf((int) $coincidencia[1]);
     } elseif (preg_match('#^/facturacion/imagen/(\d+)$#', $ruta, $coincidencia) === 1) {
-        (new FacturacionController())->imagen((int) $coincidencia[1]);
+        (new ComprobanteController())->imagen((int) $coincidencia[1]);
     } elseif ($ruta === '/usuarios') {
         (new UsuariosController())->index();
     } elseif ($ruta === '/tasas') {

@@ -71,12 +71,10 @@ require __DIR__ . '/../layout/header.php';
         <div class="acciones">
             <a class="btn btn-primary" href="<?= e(url('facturacion/nueva')) ?>">＋ Nueva venta</a>
             <a class="btn btn-ghost" href="<?= e(url('facturacion')) ?>">Historial de ventas</a>
-            <a class="btn btn-ghost" href="<?= e(url('cierre')) ?>">Cierre de caja</a>
         </div>
 
         <p class="muted small-note">
             Desde Facturación puedes consultar las facturas y ver comprobantes.
-            El cierre de caja resume tus ventas del día.
         </p>
     </section>
 

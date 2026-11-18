@@ -114,9 +114,9 @@ Respuesta esperada: `mysqld is alive`.
 
 ### 3.4 Importar la base de datos
 
-El archivo `sql/de_todito_reyes.sql` crea la base `de_todito_reyes`, las 12 tablas, las 4 vistas, los 4 triggers y los datos de ejemplo.
+El archivo `sql/de_todito_reyes.sql` crea la base `de_todito_reyes`, las **15 tablas**, las 4 vistas, los 4 triggers y los datos de ejemplo. Las tablas nuevas respecto a versiones anteriores son `pagos_factura`, `periodos_fiscales` y `secuencias_fiscales`.
 
-> **Advertencia importante:** el script empieza con `DROP TABLE IF EXISTS` para las 12 tablas. Si lo ejecutas sobre una base que ya tiene información, **borra todos los datos**. Úsalo solo en una instalación nueva o después de una copia de seguridad verificada.
+> **Advertencia importante:** el script empieza con `DROP TABLE IF EXISTS` para las 15 tablas. Si lo ejecutas sobre una base que ya tiene información, **borra todos los datos**. Úsalo solo en una instalación nueva o después de una copia de seguridad verificada.
 
 #### Opción A — phpMyAdmin (recomendada para principiantes)
 
@@ -126,7 +126,7 @@ El archivo `sql/de_todito_reyes.sql` crea la base `de_todito_reyes`, las 12 tabl
 4. Pulsa **Elegir archivo** y selecciona `C:\xampp\htdocs\revisionSistema\sql\de_todito_reyes.sql`.
 5. Verifica que el juego de caracteres sea **utf-8**.
 6. Pulsa **Continuar** y espera el mensaje de éxito.
-7. En la lista de la izquierda debe aparecer la base `de_todito_reyes` con 12 tablas y 4 vistas.
+7. En la lista de la izquierda debe aparecer la base `de_todito_reyes` con 15 tablas y 4 vistas (phpMyAdmin muestra 19 objetos en total).
 
 ![Figura 1. Pestaña «Importar» de phpMyAdmin. Selecciona el archivo SQL, verifica el juego de caracteres utf-8 y pulsa «Continuar».](capturas/17_phpmyadmin_importar.png)
 
@@ -142,9 +142,9 @@ Verifica la importación:
 C:\xampp\mysql\bin\mysql.exe -u root -e "USE de_todito_reyes; SHOW TABLES;"
 ```
 
-Deben aparecer, entre otras: `usuarios`, `clientes`, `productos`, `facturas`, `detalle_factura`, `tasas_cambio_bcv`, `merma_ajustes` y `bitacora_auditoria`.
+Deben aparecer, entre otras: `usuarios`, `clientes`, `productos`, `facturas`, `detalle_factura`, `pagos_factura`, `periodos_fiscales`, `secuencias_fiscales`, `tasas_cambio_bcv`, `merma_ajustes` y `bitacora_auditoria`.
 
-![Figura 2. Estructura de la base de datos en phpMyAdmin. La captura muestra las 12 tablas base creadas por el script.](capturas/18_phpmyadmin_tablas.png)
+![Figura 2. Estructura de la base de datos en phpMyAdmin. La captura muestra las 15 tablas base y las 4 vistas creadas por el script.](capturas/18_phpmyadmin_estructura.png)
 
 #### Si la base ya existía
 
@@ -372,23 +372,25 @@ El sistema exige contraseñas de al menos 8 caracteres para los ADMIN creados po
 | 1 | Abrir `/` | Muestra el formulario de inicio de sesión |
 | 2 | Entrar con `admin` / `admin123` | Llega al panel ADMIN |
 | 3 | Abrir `/panel` sin sesión | Redirige al login |
-| 4 | Entrar como CAJERO | Ve **Mi panel**, sin Productos, Tasas ni Usuarios |
-| 5 | Abrir `/productos` como CAJERO | Redirige a su panel con aviso |
-| 6 | Registrar una tasa BCV como ADMIN | Se guarda y aparece como vigente |
-| 7 | Emitir una factura de prueba | Descuenta stock y genera consecutivo |
-| 8 | Abrir el comprobante | Muestra número, control y código de verificación |
-| 9 | Descargar PDF | Archivo válido, sin URL ni rutas del sistema |
-| 10 | Descargar PNG | Funciona solo si `gd` está activa |
-| 11 | Exportar CSV | Se abre en Excel con acentos y decimales correctos |
-| 12 | Cerrar sesión | Vuelve al login y `/panel` ya no es accesible |
-| 13 | Abrir `config/database.php` por HTTP | 403 o 404 |
-| 14 | Abrir `tools/crear_admin.php` por HTTP | 403 |
+| 4 | Entrar como CAJERO | Ve **Mi panel**; no ve Períodos, Merma, Tasas ni Usuarios |
+| 5 | Abrir `/productos` como CAJERO | Se abre en modo consulta, sin costos ni botones de administración |
+| 6 | Abrir `/mermas` como CAJERO | Redirige a su panel con el aviso «Solo un administrador puede realizar esa acción.» |
+| 7 | Registrar una tasa BCV como ADMIN | Se guarda y aparece como vigente |
+| 8 | Emitir una factura de prueba | Descuenta stock y genera consecutivo |
+| 9 | Abrir el comprobante | Muestra número, control, código de verificación y desglose de pagos |
+| 10 | Descargar PDF | Archivo válido, sin URL ni rutas del sistema |
+| 11 | Descargar PNG | Funciona solo si `gd` está activa |
+| 12 | Exportar CSV como ADMIN | Se abre en Excel con acentos y decimales correctos |
+| 13 | Cerrar o reabrir un período como ADMIN | Se registra en la bitácora y bloquea la anulación de ese mes |
+| 14 | Cerrar sesión | Vuelve al login y `/panel` ya no es accesible |
+| 15 | Abrir `config/database.php` por HTTP | 403 o 404 |
+| 16 | Abrir `tools/crear_admin.php` por HTTP | 403 |
 
 Si alguna prueba falla, revisa la sección 11.
 
 ![Figura 5. Panel principal del ADMIN después de una instalación correcta. Debe mostrar las tarjetas de inventario, ventas, tasa BCV y últimas facturas.](capturas/01_panel_admin.png)
 
-![Figura 6. Panel del CAJERO. Sirve para comprobar que el rol reducido no muestra Productos, Tasas ni Usuarios en el menú.](capturas/10_panel_cajero.png)
+![Figura 6. Panel del CAJERO. Sirve para comprobar que el rol reducido no muestra Períodos, Merma, Tasas ni Usuarios, y que Productos aparece en modo consulta.](capturas/10_panel_cajero.png)
 
 ---
 
@@ -396,7 +398,7 @@ Si alguna prueba falla, revisa la sección 11.
 
 ### 7.1 Instalación nueva
 
-Usa `sql/de_todito_reyes.sql`. Ya incluye la columna `codigo_verificacion` y todo el esquema actual.
+Usa `sql/de_todito_reyes.sql`. Ya incluye la columna `codigo_verificacion`, el desglose de pagos (`pagos_factura`), los períodos fiscales (`periodos_fiscales`), las secuencias (`secuencias_fiscales`) y todo el esquema actual: 15 tablas, 4 vistas y 4 triggers.
 
 ### 7.2 Base existente anterior al código de verificación
 
@@ -414,7 +416,42 @@ La migración:
 
 **Antes de aplicarla, haz una copia de seguridad.** Si la columna ya existe, el `ALTER TABLE` fallará; en ese caso no la ejecutes de nuevo.
 
-### 7.3 Actualizar el código
+### 7.3 Base existente sin períodos fiscales, pagos ni secuencias
+
+Si la base ya funciona pero no tiene las tablas `pagos_factura`, `periodos_fiscales` y `secuencias_fiscales`, ni las columnas de anulación en `facturas`, aplica una sola vez:
+
+```bat
+C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 de_todito_reyes < "C:\xampp\htdocs\revisionSistema\sql\migracion_f14_f16_f17_f21.sql"
+```
+
+La migración cubre cuatro cambios:
+
+| Cambio | Qué agrega |
+|---|---|
+| **F-16** | Columnas `motivo_anulacion`, `fecha_anulacion` e `id_usuario_anulacion` en `facturas`, con su índice y llave foránea. |
+| **F-17** | Tabla `periodos_fiscales` para cerrar y reabrir meses. |
+| **F-21** | Tabla `pagos_factura` para guardar el desglose de pagos por método y moneda. |
+| **F-14** | Tabla `secuencias_fiscales` para reservar el consecutivo sin depender de `MAX()`. |
+
+Además:
+
+- Inicializa `secuencias_fiscales` con el mayor número de factura conocido (incluida la bitácora), para no repetir consecutivos.
+- Genera una fila en `pagos_factura` para cada factura histórica. Las facturas `ZELLE` quedan en USD; el resto, en bolívares. Las facturas `MIXTO` antiguas quedan como un único pago en bolívares, porque antes no se guardaba el desglose.
+- Reemplaza el trigger `trg_facturas_au` para incluir el motivo, la fecha y el usuario de anulación en la bitácora.
+
+El script es **idempotente**: usa `CREATE TABLE IF NOT EXISTS`, verifica columnas e índices antes de crearlos y no duplica los pagos históricos. Aun así, **haz una copia de seguridad antes de ejecutarlo**.
+
+Para verificar que quedó aplicado:
+
+```bat
+C:\xampp\mysql\bin\mysql.exe -u root -e "USE de_todito_reyes; SHOW TABLES LIKE 'pagos_factura'; SHOW TABLES LIKE 'periodos_fiscales'; SHOW TABLES LIKE 'secuencias_fiscales'; SHOW COLUMNS FROM facturas LIKE 'motivo_anulacion';"
+```
+
+Deben aparecer las tres tablas y la columna `motivo_anulacion`. Después de migrar, entra como ADMIN a **Períodos** (`/periodos`) y confirma que se listan los 12 meses del año.
+
+> Si la base es muy antigua y tampoco tiene `codigo_verificacion`, aplica primero la migración de la sección 7.2 y después esta.
+
+### 7.4 Actualizar el código
 
 1. Haz copia de seguridad de la base y de `config/`.
 2. Detén Apache o pon el sistema en mantenimiento.
@@ -592,8 +629,9 @@ Cada factura guarda la tasa aplicada. Corregir una tasa histórica no cambia las
 ### 10.2 Stock y mermas
 
 - El stock se descuenta al emitir una factura y al registrar una merma.
-- La anulación de una factura devuelve las cantidades al stock.
+- La anulación de una factura devuelve las cantidades al stock y exige un motivo.
 - Revisa el aviso de **stock bajo** en el panel ADMIN.
+- Solo el ADMIN registra mermas; el CAJERO no ve ese módulo.
 - Registra las mermas con el motivo correcto para mantener la trazabilidad.
 
 ### 10.3 Espacio en disco
@@ -602,7 +640,7 @@ La base crece con las facturas, el detalle y la bitácora. Revisa el espacio lib
 
 ### 10.4 Bitácora de auditoría
 
-La tabla `bitacora_auditoria` registra eventos como `LOGIN`, `LOGIN_FALLIDO`, `LOGOUT`, `CREAR_ADMIN`, `RESET_ADMIN`, cambios de facturas y movimientos relevantes. No la borres: es la evidencia de auditoría. Si necesitas depurarla, archiva los registros antiguos antes de eliminarlos.
+La tabla `bitacora_auditoria` registra eventos como `LOGIN`, `LOGIN_FALLIDO`, `LOGOUT`, `CREAR_ADMIN`, `RESET_ADMIN`, emisiones y anulaciones de facturas, cierres y reaperturas de períodos (`CIERRE`, `REAPERTURA`) y otros movimientos relevantes. No la borres: es la evidencia de auditoría. Si necesitas depurarla, archiva los registros antiguos antes de eliminarlos.
 
 ### 10.5 Rutina diaria sugerida
 
